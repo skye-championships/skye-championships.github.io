@@ -1,0 +1,44 @@
+rules_version = '2';
+// قواعد الحماية: هذي اللي تمنع أي أحد يعدل غير المشرفين، حتى لو عدّل كود الموقع عنده.
+// انسخها كاملة في Firebase Console > Firestore Database > Rules ثم Publish
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+    function adminPath() {
+      return /databases/$(database)/documents/admins/$(myEmail());
+    }
+    function isAdmin() {
+      return signedIn() && exists(adminPath());
+    }
+    function isOwner() {
+      return isAdmin() && get(adminPath()).data.role == 'owner';
+    }
+
+    // البطولات: الكل يشوف، المشرفين بس يعدلون
+    match /tournaments/{tid} {
+      allow read: if true;
+      allow create, update: if isAdmin()
+        && request.resource.data.players is list
+        && request.resource.data.players.size() <= 256
+        && request.resource.data.res is map;
+      allow delete: if isOwner();
+    }
+
+    // قائمة المشرفين: المالك يضيف ويشيل، وكل شخص يقدر يشوف صلاحيته هو
+    match /admins/{email} {
+      allow read: if isAdmin() || (signedIn() && email == myEmail());
+      allow create, update: if isOwner()
+        && email == email.lower()
+        && request.resource.data.role in ['admin', 'owner']
+        && request.resource.data.keys().hasOnly(['role', 'addedBy', 'addedAt']);
+      // المالك ما يقدر يشيل نفسه عشان ما تنقفل البطولة بدون مالك
+      allow delete: if isOwner() && email != myEmail();
+    }
+  }
+}

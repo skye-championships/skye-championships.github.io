@@ -27,8 +27,10 @@ function theme(update,from){
   const t=vt("skin",update);if(!t)return;
   const r=from&&from.getBoundingClientRect(),x=r?r.left+r.width/2:innerWidth/2,y=r?r.top+r.height/2:0;
   const R=Math.hypot(Math.max(x,innerWidth-x),Math.max(y,innerHeight-y));
-  t.ready.then(()=>root.animate({clipPath:[`circle(0px at ${x}px ${y}px)`,`circle(${R}px at ${x}px ${y}px)`]},
-    {duration:650,easing:"cubic-bezier(.65,0,.35,1)",pseudoElement:"::view-transition-new(root)"})).catch(()=>{});
+  // المساحة المغطاة (مو نصف القطر) هي اللي تمشي بانتظام، عشان ما تنقلب أغلب الشاشة دفعة وحدة في النص
+  const N=24,frames=[];
+  for(let i=0;i<=N;i++){const p=i/N,a=(1-Math.cos(Math.PI*p))/2;frames.push({offset:p,clipPath:`circle(${(R*Math.sqrt(a)).toFixed(1)}px at ${x}px ${y}px)`})}
+  t.ready.then(()=>root.animate(frames,{duration:850,easing:"linear",pseudoElement:"::view-transition-new(root)"})).catch(()=>{});
 }
 
 // ---------- مؤشر القائمة (Active-Tab Indicator): ينزلق بين الأقسام بحركة نابض

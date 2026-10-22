@@ -224,10 +224,9 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
 .fnav a:hover{color:var(--on-bg)}
 @media (max-width:640px){.status{grid-template-columns:1fr}.cd div{min-width:0;flex:1}.tl .it{grid-template-columns:1fr;gap:4px}.pm{grid-template-columns:1fr auto}.pm .rn{grid-column:1/-1}}
 
-/* 3D rifle art: home page background + welcome */
-.bgfx{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.5}
+/* 3D rifle art: welcome screen only */
 .w-fx{position:absolute;inset:0;pointer-events:none;opacity:.75}
-.bgfx canvas,.w-fx canvas{width:100%;height:100%;display:block}
+.w-fx canvas{width:100%;height:100%;display:block}
 /* welcome: built from type + CSS rings, no image */
 .welcome{position:fixed;inset:0;z-index:50;overflow-y:auto;overflow-x:hidden;background:radial-gradient(700px 500px at 70% 45%,var(--glow),transparent 70%),var(--bg);color:var(--on-bg);padding:calc(24px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;place-items:center}
 .w-in{position:relative;width:min(1100px,100%);display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:24px 32px;align-items:center}
@@ -284,7 +283,6 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
   </div>
 </div>
 
-<div class="bgfx" id="bgfx" aria-hidden="true"></div>
 <div class="page">
   <header class="top">
     <a class="logo" id="logo" href="#/"></a>

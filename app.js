@@ -436,7 +436,7 @@ function viewAdmins(){
 }
 
 
-// ---------- 3D rifle art (home + welcome only): line-drawn parts that come apart and back together
+// ---------- 3D rifle art (welcome screen only): line-drawn parts that come apart and back together
 // coordinates are a side profile in SVG style (y down); each part is extruded into 3D
 const THREE_URL="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js";
 const RIFLE=[
@@ -457,8 +457,7 @@ const RIFLE=[
 const ART={T:null,host:null,raf:0,t0:0,built:false};
 function artTarget(){
   if(C.backgroundArt===false)return null;
-  if(!W.hidden)return $("wfx");
-  return route().page==="home"?$("bgfx"):null;
+  return W.hidden?null:$("wfx");
 }
 function artColors(){
   if(!ART.built)return;const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim()||"#ffffff";

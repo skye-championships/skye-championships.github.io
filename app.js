@@ -31,6 +31,8 @@ function brand(){
   $("facts").innerHTML=facts+linkFacts;
   $("w-links").hidden=!links.length;
   $("w-links").innerHTML=links.map(l=>`<a href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`).join("");
+  $("hero").insertAdjacentHTML("beforeend",eggHtml("hero"));
+  document.querySelector(".foot").insertAdjacentHTML("beforeend",eggHtml("foot"));
 }
 function welcomeInfo(n){
   const parts=arr(C.facts).map(f=>`<div><small>${esc(f.label)}</small><b>${f.num?`<span class="num">${esc(f.value)}</span>`:esc(f.value)}${f.unit?" "+esc(f.unit):""}</b></div>`);
@@ -39,25 +41,90 @@ function welcomeInfo(n){
 }
 
 // ---------- skins from config
+// الثيمات في قائمة تنفتح من زر فوق، عشان تكفي أي عدد. الثيم السري (secret) ما يطلع إلا بعد ما تنفتح أسرار كايدو
 const SK=C.skins||{};const skinIds=Object.keys(SK);
 const allVars=[...new Set(skinIds.flatMap(id=>Object.keys(SK[id].colors||{})))];
+const swatch=s=>{const sw=s.swatch||["#888","#222"];return`background:linear-gradient(135deg,${esc(sw[0])} 50%,${esc(sw[1])} 50%)`};
+let curSkin=null;
 function setSkin(id){
-  if(!SK[id])id=SK[C.defaultSkin]?C.defaultSkin:skinIds[0];if(!id)return;
-  const root=document.documentElement,s=SK[id];
+  if(!SK[id]||(SK[id].secret&&!kidOpen()))id=SK[C.defaultSkin]?C.defaultSkin:skinIds[0];if(!id)return;
+  const root=document.documentElement,s=SK[id];curSkin=id;
   allVars.forEach(k=>root.style.removeProperty("--"+k));
   Object.entries(s.colors||{}).forEach(([k,v])=>root.style.setProperty("--"+k,v));
   root.style.colorScheme=s.light?"light":"dark";
   document.querySelectorAll(".sk").forEach(b=>b.setAttribute("aria-pressed",b.dataset.skin===id));
-  const n=document.getElementById("skn");if(n)n.textContent=s.name||id;
+  const n=$("skn");if(n)n.textContent=s.name||id;
+  const b=$("skb");if(b){b.querySelector("i").style.cssText=swatch(s);b.setAttribute("aria-label","الثيم: "+(s.name||id))}
+  const tc=document.querySelector('meta[name="theme-color"]');if(tc)tc.content=getComputedStyle(root).getPropertyValue("--bg").trim()||"#0a0a0c";   // لون شريط المتصفح في الجوال
   LS.set("skin:"+TID,id);
   if(typeof artColors==="function"&&window.THREE)artColors();
 }
+const pickSkin=(id,from)=>window.Motion?Motion.theme(()=>setSkin(id),from):setSkin(id);
+function skinGrid(){
+  const ids=skinIds.filter(id=>!SK[id].secret||kidOpen());
+  $("skin-pop").innerHTML=`<h4>اختر الثيم</h4><div class="skg">${ids.map(id=>{const s=SK[id];
+    return`<button class="sk" data-skin="${esc(id)}" aria-pressed="${id===curSkin}"><i style="${swatch(s)}"></i><span>${esc(s.name||id)}${s.secret?" 🎩":""}</span></button>`}).join("")}</div>`;
+  $("skin-pop").querySelectorAll(".sk").forEach(b=>b.onclick=()=>pickSkin(b.dataset.skin,b));
+}
 function skins(){
   const box=$("skins");if(skinIds.length<2){box.hidden=true;setSkin(skinIds[0]);return}
-  box.innerHTML=`<span id="skn"></span>`+skinIds.map(id=>{const s=SK[id],sw=s.swatch||["#888","#222"];
-    return`<button class="sk" data-skin="${esc(id)}" title="${esc(s.name||id)}" aria-label="ثيم ${esc(s.name||id)}"><i style="background:linear-gradient(135deg,${esc(sw[0])} 50%,${esc(sw[1])} 50%)"></i></button>`}).join("");
-  box.querySelectorAll(".sk").forEach(b=>b.onclick=()=>window.Motion?Motion.theme(()=>setSkin(b.dataset.skin),b):setSkin(b.dataset.skin));
+  box.innerHTML=`<button class="skb" id="skb" aria-haspopup="dialog" aria-expanded="false" aria-controls="skin-pop"><i></i><span id="skn"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
+  skinGrid();popup($("skb"),$("skin-pop"));
   setSkin(LS.get("skin:"+TID,C.defaultSkin));
+}
+
+// ---------- قوائم منبثقة صغيرة (الثيمات والمؤسسين): تنقفل بالضغط برا أو بزر Esc
+const POPS=[];
+function popup(btn,pop){
+  const set=open=>{if(open)POPS.forEach(p=>p.pop!==pop&&p.set(false));pop.hidden=!open;btn.setAttribute("aria-expanded",open)};
+  POPS.push({btn,pop,set});
+  btn.onclick=e=>{const open=pop.hidden;set(open);
+    if(open&&e.detail===0){const f=pop.querySelector("[aria-pressed=true]")||pop.querySelector("button,a");f&&f.focus()}};   // من لوحة المفاتيح: التركيز يدخل القائمة
+}
+document.addEventListener("pointerdown",e=>POPS.forEach(p=>{if(!p.pop.hidden&&!p.pop.contains(e.target)&&!p.btn.contains(e.target))p.set(false)}));
+addEventListener("keydown",e=>{if(e.key==="Escape")POPS.forEach(p=>{if(!p.pop.hidden){p.set(false);p.btn.focus()}})});
+
+// ---------- مؤسسين الموقع: خانة فوق يسار، وتنفتح بصورهم كبيرة
+function founders(){
+  const F=arr(C.founders).filter(f=>f&&f.name);if(!F.length)return;
+  const av=(f,tag)=>f.photo?`<img src="${esc(f.photo)}" alt="" width="64" height="64" decoding="async">`:`<${tag}>${esc([...String(f.name)][0])}</${tag}>`;
+  $("founders").hidden=false;
+  $("founders").innerHTML=`<button class="fnd" id="fnd" aria-haspopup="dialog" aria-expanded="false" aria-controls="fnd-pop"><span class="fnd-av">${F.map(f=>av(f,"b")).join("")}</span><span class="fnd-t"><small>المؤسسين</small><b>${F.map(f=>esc(f.name)).join(" - ")}</b></span></button>`;
+  $("fnd-pop").innerHTML=`<h4>مؤسسين الموقع</h4><div class="fpl">${F.map(f=>`<div class="fp">${av(f,"i")}<b>${esc(f.name)}</b></div>`).join("")}</div>`;
+  popup($("fnd"),$("fnd-pop"));
+}
+
+// ---------- شريط التحكم بالقائمة: لما الأقسام أعرض من الشاشة تطلع أسهم على الأطراف وشريط تسحبه تحتها، وعجلة الماوس تحركها بالعرض
+let navStripSync=()=>{};
+function navStrip(){
+  const bar=$("navbar"),n=$("nav"),tr=$("nav-track");if(!bar||!tr)return;
+  const th=tr.firstElementChild,rtl=getComputedStyle(n).direction==="rtl";
+  const max=()=>Math.max(0,n.scrollWidth-n.clientWidth);
+  const hidL=()=>rtl?max()+n.scrollLeft:n.scrollLeft;   // كم بكسل من الأقسام مخفي على اليسار
+  const sync=()=>{const m=max(),ovf=m>1;bar.classList.toggle("ovf",ovf);
+    if(!ovf){bar.classList.remove("more-l","more-r");return}
+    const l=Math.min(m,Math.max(0,hidL()));bar.classList.toggle("more-l",l>2);bar.classList.toggle("more-r",l<m-2);
+    const tw=tr.clientWidth,w=Math.max(28,tw*n.clientWidth/n.scrollWidth);
+    th.style.setProperty("--tw",w+"px");th.style.setProperty("--tx",(tw-w)*l/m+"px")};
+  let raf=0;const req=()=>{if(!raf)raf=requestAnimationFrame(()=>{raf=0;sync()})};
+  n.addEventListener("scroll",req,{passive:true});
+  if("ResizeObserver"in window)new ResizeObserver(req).observe(n);else addEventListener("resize",req);
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(req);
+  const step=dir=>n.scrollBy({left:dir*n.clientWidth*.7,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+  $("nav-l").onclick=()=>step(-1);$("nav-r").onclick=()=>step(1);
+  n.addEventListener("wheel",e=>{const m=max();if(!m||e.ctrlKey||Math.abs(e.deltaX)>=Math.abs(e.deltaY))return;
+    const d=(e.deltaMode===1?16:e.deltaMode===2?n.clientWidth:1)*e.deltaY*(rtl?-1:1),l=hidL();
+    if((d<0&&l<=0)||(d>0&&l>=m))return;   // وصلت الطرف: الصفحة تنزل عادي
+    e.preventDefault();n.scrollLeft+=d},{passive:false});
+  let grab=null;
+  const move=e=>{if(grab===null)return;const r=tr.getBoundingClientRect(),room=r.width-th.offsetWidth;if(room<=0)return;
+    n.scrollLeft+=Math.min(room,Math.max(0,e.clientX-r.left-grab))/room*max()-hidL()};
+  tr.addEventListener("pointerdown",e=>{if(!max())return;e.preventDefault();tr.setPointerCapture(e.pointerId);tr.classList.add("drag");
+    const px=e.clientX-tr.getBoundingClientRect().left,x=parseFloat(th.style.getPropertyValue("--tx"))||0,w=th.offsetWidth;
+    grab=px>=x&&px<=x+w?px-x:w/2;move(e)});   // ضغطة على الشريط تنقل المؤشر لمكانها، والسحب يحركه
+  tr.addEventListener("pointermove",move);
+  const end=()=>{grab=null;tr.classList.remove("drag")};tr.addEventListener("pointerup",end);tr.addEventListener("pointercancel",end);
+  navStripSync=req;sync();
 }
 
 // ---------- bracket logic (pure, from data D)
@@ -109,11 +176,11 @@ let localEdit=!!LS.get("edit:"+TID,false);   // local mode: editing is a toggle 
 let admins=[],adminsUnsub=null;
 let db=null,auth=null,ref=null;
 const UI={round:null};
-let Q="",askReset=false,dirty=false;
+let Q="",QN="",askReset=false,dirty=false;   // QN = البحث بعد توحيد الحروف
 const canEdit=()=>(role==="local"&&localEdit)||role==="admin"||role==="owner";
 const isOwner=()=>role==="owner";
 
-function toast(msg){if(window.Motion)return Motion.toast(msg);const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+function toast(msg,ms){if(window.Motion)return Motion.toast(msg,ms);const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),ms||2600)}
 function fail(e){console.error(e);toast(e&&e.code==="permission-denied"?"ما عندك صلاحية لهذا التعديل":"صار خطأ، حاول مرة ثانية")}
 let PREV=null;   // آخر نتائج شفناها، عشان نلمّع البطاقة اللي تغيرت
 function dataChanged(){G=D&&D.players.length>=2?logic(D):null;RUNS=G?G.runs():null;loaded=true;render();
@@ -171,7 +238,7 @@ const Act={
 const PAGES={
   home:    {nav:"الرئيسية",view:viewHome},
   matches: {nav:"المباريات",title:"المباريات",sub:"كل مباريات البطولة دور بدور.",view:viewRounds,search:true},
-  bracket: {nav:"البراكت",title:"البراكت كامل",sub:"طريق كل لاعب للنهائي. اسحب للتنقل، والعجلة للتكبير.",view:viewBracket,search:true},
+  bracket: {nav:"البراكت",title:"البراكت كامل",sub:"طريق كل لاعب للنهائي. اسحب للتنقل، وكبّر بالعجلة أو بإصبعين، أو انقر مرتين.",view:viewBracket,search:true},
   players: {nav:"اللاعبين",title:"اللاعبين",sub:"ابحث عن اسمك عشان تشوف مبارياتك وخصمك الجاي.",view:viewPlayers,search:true},
   player:  {title:"",view:viewPlayer},
   schedule:{nav:"المواعيد",title:"مواعيد الأدوار",sub:"المواعيد تقريبية وممكن تتقدم أو تتأخر حسب سير المباريات.",view:viewSchedule,hidden:()=>!arr(C.schedule).length},
@@ -202,6 +269,7 @@ function render(kind){
   const nav=$("nav"),sig=navItems.map(([k])=>k).join(),cur="#/"+(R.page==="player"?"players":R.page);
   if(nav.dataset.sig!==sig){nav.innerHTML=navItems.map(([k,p])=>`<a href="#/${k}">${p.nav}</a>`).join("");nav.dataset.sig=sig}   // نبنيها بس إذا تغيرت الأقسام، عشان المؤشر ينزلق
   nav.querySelectorAll("a").forEach(a=>a.getAttribute("href")===cur?a.setAttribute("aria-current","page"):a.removeAttribute("aria-current"));
+  navStripSync();
   $("fnav").innerHTML=navItems.map(([k,p])=>`<a href="#/${k}">${p.nav}</a>`).join("")+(canEdit()?`<a href="#/settings">لوحة التحكم</a>`:"")+(isOwner()?`<a href="#/admins">المشرفين</a>`:"");
   $("hero").hidden=R.page!=="home";
   $("ph").hidden=R.page==="home"||R.page==="player";
@@ -239,7 +307,15 @@ function account(){
   a.innerHTML=`<code>${esc(user.email)}</code><span class="role ${role}">${rl}</span><button class="linkbtn" id="logout">خروج</button>`;
   $("logout").onclick=()=>auth.signOut();
 }
-const match=t=>Q&&t&&t.toLowerCase().includes(Q.toLowerCase());
+// البحث ما يفرق بين أ وإ وآ وا، ولا ة وه، ولا ى وي، ويتجاهل التشكيل والتطويل والمسافات و _ - والحروف الكبيرة والصغيرة
+const norm=s=>String(s??"").normalize("NFKC").toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g,"").replace(/[أإآٱ]/g,"ا").replace(/ة/g,"ه").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي")
+  .replace(/[\u0660-\u0669]/g,d=>d.charCodeAt(0)-0x660).replace(/[\u06F0-\u06F9]/g,d=>d.charCodeAt(0)-0x6F0).replace(/[\s_\-.·]+/g,"");
+const NC=new Map();
+const nm=t=>{let v=NC.get(t);if(v===undefined){if(NC.size>5000)NC.clear();v=norm(t);NC.set(t,v)}return v};
+const match=t=>!!QN&&!!t&&nm(t).includes(QN);
+const SEARCH_TIP="البحث ما يفرق بين أ وا، ولا ة وه، ولا الحروف الكبيرة والصغيرة.";
+const notFound=where=>`<div class="panel empty nf"><b>ما لقينا «${esc(Q)}» ${where}</b><span class="note">جرّب جزء من الاسم. ${SEARCH_TIP}</span><p><button class="btn g" type="button" data-clrq>امسح البحث</button></p></div>`;
+function clearSearch(){clearTimeout(qt);$("q").value="";Q="";QN="";render("search");$("q").focus()}
 const stLabel=o=>{if(G&&G.champ()===o.name)return["ch","🏆 البطل"];if(o.out)return["","خرج في "+G.RN(o.best)];return["in","باقي · "+G.RN(o.best)]};
 
 function notStarted(){
@@ -278,13 +354,15 @@ function viewHome(){
     feed=list.map(([r,m])=>miniCard(r,m)).join("")}
   const reg=C.registration&&C.registration.open&&!G?`<div class="panel" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><div><h3 style="margin:0">التسجيل مفتوح</h3><span class="note">${esc(C.registration.note||"")}</span></div><a class="btn" href="#/register" style="text-decoration:none">سجّل الحين</a></div>`:"";
   const ql=[["matches","المباريات","كل مباراة ونتيجتها"],["bracket","البراكت","الطريق كامل للنهائي"],["players","اللاعبين","ابحث عن مبارياتك"],["rules","القوانين","اقراها قبل تلعب"],["prizes","الجوائز","وش يفوز فيه الأوائل"],["schedule","المواعيد","متى يلعب كل دور"]]
-    .filter(([k])=>!(PAGES[k].hidden&&PAGES[k].hidden())).map(([k,t,s])=>`<a class="ql" href="#/${k}"><b>${t}</b><span>${s}</span></a>`).join("");
+    .filter(([k])=>!(PAGES[k].hidden&&PAGES[k].hidden())).map(([k,t,s])=>`<a class="ql" href="#/${k}"><b>${t}</b><span>${s}</span></a>`).join("")
+    +(MANIFEST?`<button class="ql" id="qinst" type="button"${canInstall()?"":" hidden"}><b>ثبّت الموقع</b><span>افتحه من شاشتك كتطبيق</span></button>`:"");
   $("main").innerHTML=`
    <div class="sec">${status}</div>
    ${reg?`<div class="sec">${reg}</div>`:""}
    ${feed?`<div class="sec"><h3>${feedTitle}<a href="#/matches">كل المباريات</a></h3><div class="grid">${feed}</div></div>`:""}
    ${C.about?`<div class="sec"><h3>عن البطولة</h3><p class="about">${esc(C.about)}</p></div>`:""}
    <div class="sec"><h3>تصفح</h3><div class="qlinks">${ql}</div></div>`;
+  const qi=$("qinst");if(qi)qi.onclick=install;
   if(cd)cdTimer=setInterval(()=>{const el=$("cd");if(!el){clearInterval(cdTimer);return}const h=countdownHtml();if(!h){clearInterval(cdTimer);render();return}window.Motion?Motion.count(el,h):el.innerHTML=h},1000);
 }
 
@@ -308,13 +386,14 @@ function viewRounds(){
   const order=[...Array(G.mCount(r)).keys()].sort((x,y)=>G.isBye(r,x)-G.isBye(r,y));
   for(const m of order)cards+=matchCard(r,m);
   const hint=canEdit()?"اضغط على اسم اللاعب لتسجيل فوزه بالقيم. في BO3 أول من يكسب قيمين يتأهل.":"اضغط على أي لاعب عشان تشوف مشواره في البطولة. في BO3 أول من يكسب قيمين يتأهل.";
-  $("main").innerHTML=`<div class="rounds">${pills}</div><p class="hint">${hint}</p><div class="grid${canEdit()?" can":""}">${cards}</div>`;
+  let found=!QN;for(let rr=0;rr<R&&!found;rr++)for(let m=0;m<G.mCount(rr);m++)if(match(G.slot(rr,m,0))||match(G.slot(rr,m,1))){found=true;break}
+  $("main").innerHTML=`<div class="rounds">${pills}</div>${found?`<p class="hint">${hint}</p>`:notFound("في المباريات")}<div class="grid${canEdit()?" can":""}">${cards}</div>`;
   document.querySelectorAll(".rp").forEach(b=>b.onclick=()=>{UI.round=+b.dataset.round;render("round")});
   if(canEdit()){
     document.querySelectorAll(".pl[data-r]").forEach(b=>b.onclick=()=>{b.disabled=true;Act.addWin(+b.dataset.r,+b.dataset.m,+b.dataset.k)});
     document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{const[r,m]=b.dataset.u.split("-").map(Number);Act.undo(r,m)});
   }
-  if(Q)document.querySelector(".mt.hl")?.scrollIntoView({block:"center",behavior:"smooth"});
+  if(QN)document.querySelector(".mt.hl")?.scrollIntoView({block:"center",behavior:"smooth"});
 }
 
 // ---- bracket
@@ -328,19 +407,41 @@ function viewBracket(){
     s+=`<g class="${match(a)||match(b)?"hlg":""}" data-key="${K(r,m)}"><rect class="bx" x="${x}" y="${y}" width="${W}" height="${H}" rx="5"/>`;
     [a,b].forEach((p,k)=>{const c=!p?"l":w?(w===p?"w":"l"):"";s+=`<text class="tx ${c}" x="${x+W-8}" y="${y+16+k*19}" text-anchor="end">${p?esc(p.length>16?p.slice(0,15)+"…":p):(r===0?"تأهل مباشر":"—")}</text>`;
       if(p&&G.isBo3(r)&&!G.isBye(r,m))s+=`<text class="tx ${c}" x="${x+10}" y="${y+16+k*19}">${ws[k]}</text>`});s+=`</g>`}}
+  if(SECRETS){const fx=10+(R-1)*(W+Gp)+W+12,fy=pos[R-1][0]+H/2-15;s+=`<g class="egg" data-egg="bracket" transform="translate(${fx} ${fy}) scale(.078)"><path fill-rule="evenodd" d="${KID_D}"/></g>`}
   const width=20+R*(W+Gp),height=20+G.mCount(0)*(H+V);
-  $("main").innerHTML=`<div class="bar"><button class="btn g" id="zi">+ تكبير</button><button class="btn g" id="zo">− تصغير</button><button class="btn g" id="zr">ملاءمة</button></div>
+  const r0=QN?pos[0].findIndex((y,m)=>match(G.slot(0,m,0))||match(G.slot(0,m,1))):-1;
+  $("main").innerHTML=`<div class="bar"><button class="btn g" id="zi">+ تكبير</button><button class="btn g" id="zo">− تصغير</button><button class="btn g" id="zr">ملاءمة</button>${QN&&r0<0?`<span class="note">ما لقينا «${esc(Q)}» في البراكت. <button class="linkbtn" type="button" data-clrq>امسح البحث</button></span>`:""}</div>
    <div class="vp" id="vp" dir="ltr"><svg id="sv" width="${width}" height="${height}">${s}</svg></div>`;
   const sv=$("sv"),vp=$("vp");
   const ap=()=>sv.style.transform=`translate(${Z.x}px,${Z.y}px) scale(${Z.z})`;
   const fit=()=>{Z.z=Math.min(vp.clientWidth/width,1);Z.x=0;Z.y=10;ap()};
-  if(Q){const r0=pos[0].findIndex((y,m)=>match(G.slot(0,m,0))||match(G.slot(0,m,1)));if(r0>=0){Z.z=.9;Z.y=-pos[0][r0]*Z.z+vp.clientHeight/2;Z.x=10}}
+  if(r0>=0){Z.z=.9;Z.y=-pos[0][r0]*Z.z+vp.clientHeight/2;Z.x=10}
   ap();
   const za=f=>()=>{window.Motion&&Motion.zoom(sv);f()};   // أزرار التكبير تنزلق، السحب والعجلة تبقى فورية
+  const clamp=z=>Math.min(2,Math.max(.12,z));
+  const local=(x,y)=>{const rc=vp.getBoundingClientRect();return[x-rc.left,y-rc.top]};
+  const zoomAt=([mx,my],nz)=>{nz=clamp(nz);Z.x=mx-(mx-Z.x)*nz/Z.z;Z.y=my-(my-Z.y)*nz/Z.z;Z.z=nz;ap()};
   $("zi").onclick=za(()=>{Z.z=Math.min(2,Z.z*1.25);ap()});$("zo").onclick=za(()=>{Z.z=Math.max(.12,Z.z/1.25);ap()});$("zr").onclick=za(fit);
-  vp.onwheel=e=>{e.preventDefault();sv.classList.remove("za");const rc=vp.getBoundingClientRect(),mx=e.clientX-rc.left,my=e.clientY-rc.top,f=e.deltaY<0?1.12:.89,nz=Math.min(2,Math.max(.12,Z.z*f));Z.x=mx-(mx-Z.x)*nz/Z.z;Z.y=my-(my-Z.y)*nz/Z.z;Z.z=nz;ap()};
-  let d=null;vp.onpointerdown=e=>{sv.classList.remove("za");d=[e.clientX-Z.x,e.clientY-Z.y];vp.setPointerCapture(e.pointerId);vp.style.cursor="grabbing"};
-  vp.onpointermove=e=>{if(d){Z.x=e.clientX-d[0];Z.y=e.clientY-d[1];ap()}};vp.onpointerup=()=>{d=null;vp.style.cursor="grab"};
+  vp.onwheel=e=>{e.preventDefault();sv.classList.remove("za");zoomAt(local(e.clientX,e.clientY),Z.z*(e.deltaY<0?1.12:.89))};
+  // النقر مرتين يقرّب على المكان، ومرة ثانية يرجع للملاءمة
+  const dbl=(x,y)=>{window.Motion&&Motion.zoom(sv);if(Z.z<.95)zoomAt(local(x,y),Math.max(1,Z.z*2));else fit()};
+  // إصبع واحد يسحب، وإصبعين يكبّرون ويحركون مع بعض
+  const pts=new Map();let d=null,pinch=null,tap=null,ptype="mouse";
+  const two=()=>{const[a,b]=[...pts.values()];return{dist:Math.hypot(a[0]-b[0],a[1]-b[1])||1,mid:local((a[0]+b[0])/2,(a[1]+b[1])/2)}};
+  vp.onpointerdown=e=>{
+    const eg=e.target.closest&&e.target.closest("[data-egg]");if(eg&&!pts.size){kidFind(eg.dataset.egg,eg);return}
+    sv.classList.remove("za");ptype=e.pointerType;vp.setPointerCapture(e.pointerId);pts.set(e.pointerId,[e.clientX,e.clientY]);
+    if(pts.size===2){const t=two();pinch={dist:t.dist,z:Z.z,cx:(t.mid[0]-Z.x)/Z.z,cy:(t.mid[1]-Z.y)/Z.z};d=null;tap=null;return}
+    if(pts.size>2)return;
+    if(e.pointerType!=="mouse"){if(tap&&e.timeStamp-tap.t<320&&Math.hypot(e.clientX-tap.x,e.clientY-tap.y)<30){tap=null;d=null;dbl(e.clientX,e.clientY);return}
+      tap={t:e.timeStamp,x:e.clientX,y:e.clientY}}
+    d=[e.clientX-Z.x,e.clientY-Z.y];vp.style.cursor="grabbing"};
+  vp.onpointermove=e=>{if(!pts.has(e.pointerId))return;pts.set(e.pointerId,[e.clientX,e.clientY]);
+    if(pinch&&pts.size>=2){const t=two(),nz=clamp(pinch.z*t.dist/pinch.dist);Z.z=nz;Z.x=t.mid[0]-pinch.cx*nz;Z.y=t.mid[1]-pinch.cy*nz;ap();return}
+    if(d){Z.x=e.clientX-d[0];Z.y=e.clientY-d[1];ap()}};
+  vp.onpointerup=vp.onpointercancel=e=>{pts.delete(e.pointerId);if(pts.size<2)pinch=null;
+    if(pts.size===1){const[p]=pts.values();d=[p[0]-Z.x,p[1]-Z.y]}else if(!pts.size){d=null;vp.style.cursor="grab"}};
+  vp.ondblclick=e=>{if(ptype==="mouse")dbl(e.clientX,e.clientY)};   // اللمس له حسبته فوق، والمتصفح يرسل dblclick بعدها
 }
 
 // ---- players
@@ -348,10 +449,10 @@ function viewPlayers(){
   if(!G)return notStarted();
   const ch=G.champ();
   const list=[...RUNS.values()].sort((a,b)=>(b.name===ch)-(a.name===ch)||(a.out-b.out)||(b.best-a.best)||(b.mw-a.mw)||a.name.localeCompare(b.name));
-  const shown=Q?list.filter(o=>match(o.name)):list;
+  const shown=QN?list.filter(o=>match(o.name)):list;
   const alive=list.filter(o=>!o.out).length;
-  $("main").innerHTML=`<p class="hint">${list.length} لاعب، باقي منهم ${ch?1:alive}.${Q?` نتائج البحث: ${shown.length}`:""}</p>
-   ${shown.length?`<div class="plist">${shown.map(o=>{const[c,t]=stLabel(o);return`<a class="pr${o.out?" out":""}" href="${link("player",o.name)}"><span class="nm">${esc(o.name)}</span><span class="st ${c}">${t}</span></a>`}).join("")}</div>`:`<div class="panel empty"><b>ما لقينا لاعب بهالاسم</b><span class="note">تأكد من الكتابة، الحروف الكبيرة والصغيرة ما تفرق.</span></div>`}`;
+  $("main").innerHTML=`<p class="hint">${list.length} لاعب، باقي منهم ${ch?1:alive}.${QN?` نتائج البحث: ${shown.length}`:""}</p>
+   ${shown.length?`<div class="plist">${shown.map(o=>{const[c,t]=stLabel(o);return`<a class="pr${o.out?" out":""}" href="${link("player",o.name)}"><span class="nm">${esc(o.name)}</span><span class="st ${c}">${t}</span></a>`}).join("")}</div>`:notFound("بين اللاعبين")}`;
 }
 function viewPlayer(name){
   if(!G)return notStarted();
@@ -377,7 +478,7 @@ function viewRules(){
 }
 function viewPrizes(){
   let who=[];if(G){const f=G.nRounds-1,ch=G.champ();if(ch){const a=G.slot(f,0,0),b=G.slot(f,0,1);who=[ch,a===ch?b:a]}}
-  $("main").innerHTML=`<div class="podium">${arr(C.prizes).map((p,i)=>`<div class="pd${i===0?" p1":""}"><span class="pl-no">${i+1}</span><small>${esc(p.place)}</small><b><span class="num">${esc(p.value)}</span> ${esc(p.unit||"")}</b>${who[i]?`<span class="who">${esc(who[i])}</span>`:""}</div>`).join("")}</div>`;
+  $("main").innerHTML=`<div class="podium">${arr(C.prizes).map((p,i)=>`<div class="pd${i===0?" p1":""}">${i===0?eggHtml("prize"):""}<span class="pl-no">${i+1}</span><small>${esc(p.place)}</small><b><span class="num">${esc(p.value)}</span> ${esc(p.unit||"")}</b>${who[i]?`<span class="who">${esc(who[i])}</span>`:""}</div>`).join("")}</div>`;
 }
 function viewFaq(){
   $("main").innerHTML=arr(C.faq).map(f=>`<details class="fq"><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join("");
@@ -520,8 +621,63 @@ $("enter").onclick=closeWelcome;
 addEventListener("keydown",e=>{if(e.key==="Escape")closeWelcome()});
 
 // ---------- search (shared by matches, bracket and players)
-let qt;$("q").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{Q=e.target.value.trim();
-  if(Q&&G&&route().page==="matches"){for(let r=G.nRounds-1;r>=0;r--){let f=false;for(let m=0;m<G.mCount(r);m++)if(match(G.slot(r,m,0))||match(G.slot(r,m,1))){f=true;break}if(f){UI.round=r;break}}}render("search")},200)};
+let qt;$("q").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{Q=e.target.value.trim();QN=norm(Q);
+  if(KID_WORDS.has(QN))kidFind("code",$("q"));
+  if(QN&&G&&route().page==="matches"){for(let r=G.nRounds-1;r>=0;r--){let f=false;for(let m=0;m<G.mCount(r);m++)if(match(G.slot(r,m,0))||match(G.slot(r,m,1))){f=true;break}if(f){UI.round=r;break}}}render("search")},200)};
+
+// ---------- أسرار كايدو كيد: شعاره مخفي في ٥ أماكن (البطاقة العلوية، تحت الصفحة، جنب النهائي في البراكت،
+// بطاقة المركز الأول، وكود 1412 بالكيبورد أو في البحث). كل سر تلقاه ينحفظ في جهازك، واللي يجمعها كلها ينفتح له الثيم السري
+const SECRETS=C.secrets!==false;
+const KID_D="M5 379C4 376 7 371 17 357C34 334 33 338 35 314C37 303 38 288 39 281C40 274 40 267 41 265L41 262L30 262C24 262 18 261 17 260C13 259 12 253 16 252C17 251 30 250 44 250C76 248 84 247 85 246C85 245 86 232 88 216C90 201 93 184 94 178C94 171 96 161 96 154C100 123 107 63 108 51C113 12 113 13 115 11C126 2 239 2 294 11C306 13 310 14 311 18C313 24 312 65 308 98C306 126 305 132 300 166C295 202 293 217 295 220C295 222 296 222 309 222L323 221L323 225C323 229 322 230 321 232C318 233 298 237 292 237C290 237 290 235 287 258C284 288 276 315 269 327C254 350 214 369 172 373C149 375 129 372 106 361C88 352 82 345 80 326C79 319 78 315 70 305C64 296 62 282 66 264L66 261L58 261C54 262 50 262 49 262C48 263 44 300 43 316L42 332L46 338C50 346 51 348 61 361C69 372 70 375 66 377C62 378 45 380 25 381C6 381 5 381 5 379ZM178 364C187 362 187 362 186 347C185 338 184 337 175 339C154 343 141 346 140 347C139 348 139 350 139 356C140 364 141 366 145 366C152 367 171 366 178 364ZM136 356C136 352 136 348 135 348C134 347 109 350 108 351C107 352 108 352 110 354C113 356 133 364 135 364C136 364 136 362 136 356ZM209 356C216 354 222 351 223 350C224 349 224 345 224 336L224 324L220 325C217 325 193 334 190 336C188 338 188 338 189 348C190 353 190 358 191 359C192 361 195 360 209 356ZM238 343L244 338L245 329C245 314 245 314 233 319L227 321L227 332C227 344 228 348 229 348C230 348 234 346 238 343ZM132 344C146 342 159 339 182 333C195 330 228 318 247 308C249 308 254 306 258 304C272 298 274 295 274 284C274 276 273 274 263 269C248 262 205 251 188 249C180 249 181 247 179 270C178 292 175 298 164 310C148 326 124 331 93 324L90 324L90 330C91 338 92 341 98 345C102 348 107 348 132 344ZM252 332C256 330 269 309 269 305C269 303 264 304 256 308L248 312L248 323C248 333 248 334 252 332ZM133 315C146 312 159 303 164 292C170 281 173 254 169 252C168 251 166 250 166 250C166 251 154 252 141 253C128 254 113 256 110 256C106 256 98 257 93 258C80 260 78 260 76 265C74 271 73 288 75 294C78 303 89 313 98 315C103 316 127 316 133 315ZM134 242C168 239 181 238 195 236C203 236 217 234 227 233C264 229 275 228 277 226C280 224 288 194 287 186L286 182L258 183C210 183 120 188 105 191C103 191 102 192 102 193C101 196 97 226 96 236L96 245L108 245C114 244 126 243 134 242ZM129 177C151 175 233 171 280 170C285 170 289 169 290 169C290 168 294 145 298 104C301 72 303 25 301 24C298 22 274 18 260 16C250 16 236 14 228 14C211 12 160 13 144 16C123 18 122 19 120 30C116 46 110 103 107 147C106 161 105 174 105 175C104 179 105 179 110 179C113 178 122 178 129 177Z";
+const kidSvg=()=>`<svg viewBox="0 0 327 385" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="${KID_D}"/></svg>`;
+const EGGS=["hero","foot","bracket","prize","code"];
+const KID_WORDS=new Set(SECRETS?["1412","kaitokid","كايدوكيد","kid1412"]:[]);
+const eggHtml=id=>SECRETS?`<span class="egg" data-egg="${id}" aria-hidden="true">${kidSvg()}</span>`:"";
+const kidFound=()=>arr(LS.get("kid:"+TID,[])).filter(x=>EGGS.includes(x));
+function kidOpen(){return SECRETS&&kidFound().length>=EGGS.length}
+function kidFind(id,from){
+  if(!SECRETS||!EGGS.includes(id)||document.querySelector(".kwrap"))return;
+  const had=kidFound(),fresh=!had.includes(id),got=fresh?[...had,id]:had,left=EGGS.length-got.length;
+  if(fresh)LS.set("kid:"+TID,got);
+  const unlock=fresh&&!left,secret=skinIds.find(k=>SK[k].secret);
+  const msg=unlock?`<p>لقيت كل الأسرار!</p><small>${secret?`فتحت لك ثيم «${esc(SK[secret].name||secret)}» السري، تلقاه في الثيمات`:"محقق من الطراز الأول"}</small>`
+    :fresh?`<p>لقيت شعاري 🎩</p><small>باقي ${left}. دوّر زين…</small>`
+    :`<p>هذا لقيته من قبل</p><small>${left?`باقي ${left}`:"لقيتها كلها"}</small>`;
+  const w=document.createElement("div");w.className="kwrap";
+  w.innerHTML=`<div class="kcard" role="status" aria-live="polite">${kidSvg()}<b>KAITO KID</b>${msg}<div class="kdots" aria-label="${got.length} من ${EGGS.length}">${EGGS.map((x,i)=>`<i class="${i<got.length?"on":""}"></i>`).join("")}</div></div>`;
+  document.body.appendChild(w);
+  const card=w.firstElementChild;if(window.Motion)Motion.cardIn(card,from);
+  let shut=false;
+  const close=()=>{if(shut)return;shut=true;clearTimeout(tm);removeEventListener("keydown",onKey,true);w.classList.add("out");
+    const fin=()=>{w.remove();if(unlock&&secret){skinGrid();pickSkin(secret,null)}};
+    window.Motion?Motion.cardOut(card,fin):fin()};
+  const onKey=e=>{if(e.key==="Escape"||e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();close()}};
+  w.onclick=close;addEventListener("keydown",onKey,true);
+  const tm=setTimeout(close,unlock?7000:4500);
+}
+let kb="";
+addEventListener("keydown",e=>{if(!SECRETS||e.ctrlKey||e.metaKey||e.altKey||e.key.length!==1)return;
+  if(e.target.closest&&e.target.closest("input,textarea,select,[contenteditable]"))return;
+  kb=(kb+e.key.replace(/[\u0660-\u0669]/,d=>d.charCodeAt(0)-0x660)).slice(-4);if(kb==="1412"){kb="";kidFind("code",null)}});
+document.addEventListener("click",e=>{const t=e.target.closest&&e.target.closest("[data-egg],[data-clrq]");if(!t)return;
+  if(t.hasAttribute("data-clrq"))clearSearch();else if(!t.closest(".vp"))kidFind(t.dataset.egg,t)});
+if(SECRETS)console.log("%c🎩 KAITO KID","font:900 16px sans-serif","\nفيه ٥ أسرار مخفية في الموقع. 1412");
+
+// ---------- تثبيت الموقع كتطبيق (PWA): زر يطلع بس إذا الجهاز يقدر يثبته
+const MANIFEST=!!document.querySelector('link[rel="manifest"]');   // الملف الواحد tournament-site.html ما فيه تثبيت
+if(MANIFEST&&"serviceWorker"in navigator&&window.isSecureContext)addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+let bip=null;
+const standalone=()=>matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
+const iOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==="MacIntel"&&navigator.maxTouchPoints>1);
+function canInstall(){return MANIFEST&&!standalone()&&(!!bip||iOS)}
+function installUI(){const on=canInstall();$("inst").hidden=!on;const q=$("qinst");if(q)q.hidden=!on}
+addEventListener("beforeinstallprompt",e=>{bip=e;installUI()});
+addEventListener("appinstalled",()=>{bip=null;installUI();toast("انضاف الموقع لجهازك 🎉")});
+async function install(){
+  if(bip){const p=bip;bip=null;installUI();try{await p.prompt();await p.userChoice}catch(e){}return}
+  toast("في سفاري: اضغط زر المشاركة، بعدها «إضافة إلى الشاشة الرئيسية»",6000);
+}
+$("inst").onclick=install;
 
 // ---------- cloud (Firebase)
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
@@ -540,7 +696,7 @@ async function initCloud(){
 }
 
 // ---------- boot
-brand();skins();
+brand();skins();founders();navStrip();installUI();
 addEventListener("hashchange",()=>window.Motion?Motion.page(render):render());
 const landing=route().page==="home"&&!/^#\/./.test(location.hash);
 if(C.welcome&&C.welcome.show!==false&&landing)openWelcome();

@@ -114,7 +114,7 @@ window.TOURNAMENT = {
   // أقصى عدد لاعبين
   maxPlayers: 128,
 
-  // الثيمات: تقدر تعدل الألوان أو تضيف ثيم جديد بنفس الشكل
+  // الثيمات: تقدر تعدل الألوان أو تضيف ثيم جديد بنفس الشكل. light: true للثيمات الفاتحة
   defaultSkin: "red",
   skins: {
     red: {
@@ -181,7 +181,58 @@ window.TOURNAMENT = {
         "label-acc": "#b8561b", "cta-bg": "#b8561b", "cta-fg": "#ffffff",
       },
     },
+    ocean: {
+      name: "المحيط", swatch: ["#18d6c3", "#03161c"],
+      colors: {
+        "bg": "#03161c", "glow": "#00c2b250", "on-bg": "#e8fbff", "on-bg-mute": "#8fb9c2",
+        "panel": "#0a2129", "panel2": "#0f2c36", "line": "#1d4552", "fg": "#e8fbff", "mute": "#85aab3",
+        "acc": "#18d6c3", "acc-fg": "#002420", "hi": "#4fe8d8", "hi-bg": "#18d6c322", "live": "#ffcf5a",
+        "b1": "#9fe8ff", "b3": "#4fe8d8",
+      },
+    },
+    neon: {
+      name: "النيون", swatch: ["#ff2bd6", "#2bf0ff"],
+      colors: {
+        "bg": "#0d0614", "glow": "#ff2bd650", "on-bg": "#fff0fb", "on-bg-mute": "#b996b0",
+        "panel": "#170b22", "panel2": "#20102f", "line": "#3d1f52", "fg": "#fff0fb", "mute": "#a98aa6",
+        "acc": "#ff2bd6", "acc-fg": "#1a0016", "hi": "#ff6be3", "hi-bg": "#ff2bd626", "live": "#2bf0ff",
+        "b1": "#2bf0ff", "b3": "#ff6be3",
+      },
+    },
+    ice: {
+      name: "الثلج", swatch: ["#e9f4f8", "#0a74ae"], light: true,
+      colors: {
+        "bg": "#e9f4f8", "glow": "#ffffff90", "on-bg": "#0b2533", "on-bg-mute": "#4d6b78",
+        "panel": "#ffffff", "panel2": "#f1f8fb", "line": "#cfe3ec", "fg": "#0b2533", "mute": "#5d7b88",
+        "acc": "#0a74ae", "acc-fg": "#ffffff", "hi": "#0a74ae", "hi-bg": "#0a74ae1f", "live": "#e8590c",
+        "b1": "#4d6b78", "b3": "#0a74ae", "shadow": "#0b253326",
+        "logo-acc": "#0a74ae", "chip-bg": "#0b2533", "chip-fg": "#e9f4f8", "live-text": "#c2410c",
+        "box-bg": "#0b2533", "box-line": "#0b2533", "box-fg": "#e9f4f8",
+        "label-acc": "#0a74ae", "cta-bg": "#0a74ae", "cta-fg": "#ffffff",
+      },
+    },
+    // ثيم سري: ما يطلع في القائمة إلا لما الزائر يلقى كل الأسرار المخفية (secrets تحت)
+    kid: {
+      name: "كايدو", swatch: ["#ffffff", "#0a1029"], secret: true,
+      colors: {
+        "bg": "#0a1029", "glow": "#9fb8ff50", "on-bg": "#f3f6ff", "on-bg-mute": "#9ea9d4",
+        "panel": "#111a3e", "panel2": "#172252", "line": "#2b3a78", "fg": "#f3f6ff", "mute": "#98a3cf",
+        "acc": "#ffffff", "acc-fg": "#0a1029", "hi": "#9fbcff", "hi-bg": "#9fbcff22", "live": "#ff4d5e",
+        "b1": "#9fbcff", "b3": "#ffffff", "logo-acc": "#9fbcff", "live-text": "#ff6b78",
+      },
+    },
   },
+
+  // مؤسسين الموقع: يطلعون فوق يسار. photo صورة مربعة (الأفضل 256×256) في مجلد assets
+  // اتركها [] لإخفاء الخانة
+  founders: [
+    { name: "مجاهد", photo: "assets/mujahid.jpg" },
+    { name: "رعد", photo: "assets/raad.jpg" },
+  ],
+
+  // أسرار مخفية في الموقع (شعار كايدو كيد في ٥ أماكن). اللي يلقاها كلها يفتح الثيم السري
+  // false يشيلها كلها
+  secrets: true,
 
   // مجسم السكار ثلاثي الأبعاد في الواجهة الترحيبية. false يخفيه
   backgroundArt: true,

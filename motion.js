@@ -49,10 +49,10 @@ function navSync(instant){
   ind.classList.remove("off");navLast=p;
   if(!instant)keepVisible(n,a);
 }
-// على الجوال القائمة تتمرر بالعرض، فنخلي القسم الحالي ظاهر بدون ما نحرك الصفحة
+// لو القائمة أعرض من الشاشة تتمرر بالعرض، فنخلي القسم الحالي ظاهر (بعيد عن الأسهم) بدون ما نحرك الصفحة
 function keepVisible(box,el){
   if(box.scrollWidth<=box.clientWidth+1)return;
-  const b=box.getBoundingClientRect(),r=el.getBoundingClientRect(),pad=28;
+  const b=box.getBoundingClientRect(),r=el.getBoundingClientRect(),pad=box.id==="nav"?52:28;
   const dx=r.left<b.left+pad?r.left-b.left-pad:r.right>b.right-pad?r.right-b.right+pad:0;
   if(dx)box.scrollBy({left:dx,behavior:calm()?"auto":"smooth"});
 }
@@ -60,7 +60,7 @@ function keepVisible(box,el){
 // ---------- القائمة تثبت فوق، تختفي مع النزول وترجع أول ما تطلع (Hide-on-Scroll Header) + زر للأعلى
 let totop=null;
 function scrollUI(){
-  const n=$("#nav");if(!n)return;
+  const n=$("#navbar")||$("#nav");if(!n)return;
   const s=doc.createElement("div");s.setAttribute("aria-hidden","true");n.before(s);
   totop=doc.createElement("button");totop.type="button";totop.className="totop";totop.setAttribute("aria-label","ارجع لأعلى الصفحة");
   totop.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>';
@@ -79,7 +79,7 @@ function scrollUI(){
   addEventListener("scroll",()=>{if(!tick){tick=true;requestAnimationFrame(run)}},{passive:true});
   addEventListener("resize",()=>{run();navSync(true)});
   n.addEventListener("focusin",()=>n.classList.remove("away"));
-  if("ResizeObserver"in window)new ResizeObserver(()=>navSync(true)).observe(n);
+  if("ResizeObserver"in window)new ResizeObserver(()=>navSync(true)).observe($("#nav")||n);
   if(doc.fonts&&doc.fonts.ready)doc.fonts.ready.then(()=>navSync(true));
   run();
 }
@@ -199,14 +199,14 @@ function count(el,html){
 
 // ---------- الإشعارات (Toast): تتكدس، تتوقف لما تمرر الماوس عليها، وتختفي بحركة قبل ما تنشال
 let tv=null;
-function toast(msg){
+function toast(msg,ms){
   if(!tv||!tv.isConnected){tv=doc.createElement("div");tv.className="toasts";tv.setAttribute("role","status");tv.setAttribute("aria-live","polite");doc.body.appendChild(tv)}
   const old=[...tv.children].filter(c=>!c.classList.contains("out"));
   if(old.length>=3)old[0]._close();
   const before=old.map(c=>[c,c.getBoundingClientRect().top]);
   const t=doc.createElement("div");t.className="toast";t.textContent=msg;tv.appendChild(t);
   if(!calm())before.forEach(([c,y])=>{const d=y-c.getBoundingClientRect().top;if(d)c.animate([{translate:`0 ${d}px`},{translate:"0 0"}],{duration:420,easing:OUT})});
-  let left=2600,start=0,timer=0;
+  let left=ms||2600,start=0,timer=0;
   const close=t._close=()=>{clearTimeout(timer);if(t.classList.contains("out"))return;
     if(calm())return t.remove();t.classList.add("out");t.addEventListener("animationend",()=>t.remove(),{once:true});setTimeout(()=>t.remove(),400)};
   const run=()=>{start=performance.now();clearTimeout(timer);timer=setTimeout(close,left)};
@@ -238,9 +238,24 @@ doc.addEventListener("pointermove",e=>{
     const r=c.getBoundingClientRect();c.style.setProperty("--mx",pe.clientX-r.left+"px");c.style.setProperty("--my",pe.clientY-r.top+"px")});
 },{passive:true});
 
+// ---------- بطاقة كايدو: تنرمى من مكان الشعار اللي انضغط وتلف لين توقف في النص، وتطير لما تنقفل
+function cardIn(el,from){
+  if(calm())return;
+  const r=from&&from.getBoundingClientRect?from.getBoundingClientRect():null,c=el.getBoundingClientRect();
+  const dx=r?r.left+r.width/2-(c.left+c.width/2):0,dy=r?r.top+r.height/2-(c.top+c.height/2):innerHeight*.6;
+  el.animate([{translate:`${dx}px ${dy}px`,rotate:"-480deg",scale:.06,opacity:0},{opacity:1,offset:.2},{translate:"0 0",rotate:"0deg",scale:1,opacity:1}],{duration:820,easing:OUT});
+  const s=el.querySelector("svg");if(s)s.animate([{scale:.6,rotate:"-12deg"},{scale:1.08,offset:.6},{scale:1,rotate:"0deg"}],{duration:600,delay:520,easing:OUT,fill:"backwards"});
+}
+function cardOut(el,done){
+  if(calm())return done();
+  let over=false;const end=()=>{if(!over){over=true;done()}};
+  const a=el.animate([{},{translate:"38vw -75vh",rotate:"40deg",scale:.5,opacity:0}],{duration:480,easing:"cubic-bezier(.7,0,.84,0)",fill:"forwards"});
+  a.onfinish=end;setTimeout(end,700);
+}
+
 // ---------- البراكت: التكبير بالأزرار ينزلق
 function zoom(svg){if(!svg||calm())return;svg.classList.add("za");clearTimeout(svg._za);svg._za=setTimeout(()=>svg.classList.remove("za"),450)}
 
 if(doc.readyState==="loading")doc.addEventListener("DOMContentLoaded",scrollUI);else scrollUI();
-window.Motion={page,theme,rendered,results,count,toast,zoom,welcomeOut};
+window.Motion={page,theme,rendered,results,count,toast,zoom,welcomeOut,cardIn,cardOut};
 })();

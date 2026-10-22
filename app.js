@@ -56,7 +56,7 @@ function skins(){
   const box=$("skins");if(skinIds.length<2){box.hidden=true;setSkin(skinIds[0]);return}
   box.innerHTML=`<span id="skn"></span>`+skinIds.map(id=>{const s=SK[id],sw=s.swatch||["#888","#222"];
     return`<button class="sk" data-skin="${esc(id)}" title="${esc(s.name||id)}" aria-label="ثيم ${esc(s.name||id)}"><i style="background:linear-gradient(135deg,${esc(sw[0])} 50%,${esc(sw[1])} 50%)"></i></button>`}).join("");
-  box.querySelectorAll(".sk").forEach(b=>b.onclick=()=>setSkin(b.dataset.skin));
+  box.querySelectorAll(".sk").forEach(b=>b.onclick=()=>window.Motion?Motion.theme(()=>setSkin(b.dataset.skin),b):setSkin(b.dataset.skin));
   setSkin(LS.get("skin:"+TID,C.defaultSkin));
 }
 
@@ -113,9 +113,14 @@ let Q="",askReset=false,dirty=false;
 const canEdit=()=>(role==="local"&&localEdit)||role==="admin"||role==="owner";
 const isOwner=()=>role==="owner";
 
-function toast(msg){const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+function toast(msg){if(window.Motion)return Motion.toast(msg);const t=document.createElement("div");t.className="toast";t.setAttribute("role","status");t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
 function fail(e){console.error(e);toast(e&&e.code==="permission-denied"?"ما عندك صلاحية لهذا التعديل":"صار خطأ، حاول مرة ثانية")}
-function dataChanged(){G=D&&D.players.length>=2?logic(D):null;RUNS=G?G.runs():null;loaded=true;render()}
+let PREV=null;   // آخر نتائج شفناها، عشان نلمّع البطاقة اللي تغيرت
+function dataChanged(){G=D&&D.players.length>=2?logic(D):null;RUNS=G?G.runs():null;loaded=true;render();
+  const prev=PREV;PREV=D?{p:D.players.join("\n"),res:Object.fromEntries(Object.entries(D.res).map(([k,v])=>[k,v.slice()]))}:null;
+  if(!window.Motion||!prev||!PREV||prev.p!==PREV.p)return;
+  const ch=[];for(const k of new Set([...Object.keys(prev.res),...Object.keys(PREV.res)])){const a=prev.res[k]||[],b=PREV.res[k]||[];if(a.join()!==b.join())ch.push({key:k,grew:b.length>a.length,k:b[b.length-1]})}
+  if(ch.length)Motion.results(ch)}
 
 // ---------- local mode (no Firebase): demo data saved in this browser only
 const SAMPLE=(()=>{const a=["Shadow","Viper","Nova","Blaze","Ghost","Rynz","Zed","Kai","Frost","Hex","Ace","Raptor","Clix","Lynx","Bolt","Echo","Mako","Jinx","Onyx","Pulse","Sly","Toxic","Vex","Wolf"],b=["","SA","x","7","99","FN","KSA","_","1"],c=["فهد","سعود","راكان","تركي","نواف","ريان","عبدالله","يزن","مشعل","بندر","ماجد","خالد"];
@@ -188,22 +193,29 @@ function route(){
 }
 const go=(page,arg)=>{location.hash="#/"+page+(arg?"/"+encodeURIComponent(arg):"")};
 const link=(page,arg)=>"#/"+page+(arg?"/"+encodeURIComponent(arg):"");
-let lastPage=null;
+let lastPage=null,lastKey=null,wasLoaded=false;
 
-function render(){
+// kind: "round" | "search" | غيرها = تحديث بيانات. دخول صفحة جديدة ينحسب تلقائي
+function render(kind){
   const R=route(),P=PAGES[R.page];
   const navItems=Object.entries(PAGES).filter(([k,p])=>p.nav&&!(p.hidden&&p.hidden()));
-  $("nav").innerHTML=navItems.map(([k,p])=>`<a href="#/${k}" ${k===R.page||(R.page==="player"&&k==="players")?'aria-current="page"':""}>${p.nav}</a>`).join("");
+  const nav=$("nav"),sig=navItems.map(([k])=>k).join(),cur="#/"+(R.page==="player"?"players":R.page);
+  if(nav.dataset.sig!==sig){nav.innerHTML=navItems.map(([k,p])=>`<a href="#/${k}">${p.nav}</a>`).join("");nav.dataset.sig=sig}   // نبنيها بس إذا تغيرت الأقسام، عشان المؤشر ينزلق
+  nav.querySelectorAll("a").forEach(a=>a.getAttribute("href")===cur?a.setAttribute("aria-current","page"):a.removeAttribute("aria-current"));
   $("fnav").innerHTML=navItems.map(([k,p])=>`<a href="#/${k}">${p.nav}</a>`).join("")+(canEdit()?`<a href="#/settings">لوحة التحكم</a>`:"")+(isOwner()?`<a href="#/admins">المشرفين</a>`:"");
   $("hero").hidden=R.page!=="home";
   $("ph").hidden=R.page==="home"||R.page==="player";
   $("ph-t").textContent=P.title||"";$("ph-s").textContent=P.sub||"";
   $("tools").hidden=!P.search;
   const n=D?D.players.length:0;welcomeInfo(n);stats();banner();account();
-  if(R.page!==lastPage){lastPage=R.page;window.scrollTo(0,0);artPlace()}
+  const key=R.page+"/"+R.arg,entered=key!==lastKey||(loaded&&!wasLoaded);
+  if(R.page!==lastPage){lastPage=R.page;artPlace()}
+  if(key!==lastKey){lastKey=key;window.scrollTo(0,0)}   // من لاعب للاعب ثاني نرجع لفوق بعد
+  wasLoaded=loaded;
   if(R.page==="settings"&&dirty&&document.activeElement&&document.activeElement.id==="pl")return; // لا تمسح كتابة المشرف
-  if(!loaded&&!["rules","faq","prizes","schedule","register"].includes(R.page)){$("main").innerHTML=`<div class="panel empty"><b>جاري التحميل…</b></div>`;return}
+  if(!loaded&&!["rules","faq","prizes","schedule","register"].includes(R.page)){$("main").innerHTML=`<div class="ske" role="status" aria-busy="true"><span class="vh">جاري التحميل…</span><div class="ske-b"></div><div class="ske-g">${'<div class="ske-b"></div>'.repeat(4)}</div></div>`;return}
   P.view(R.arg);
+  if(window.Motion)Motion.rendered(entered?"page":typeof kind==="string"?kind:"data",{page:R.page});
 }
 function stats(){
   const n=D?D.players.length:0;
@@ -244,10 +256,11 @@ function countdownHtml(){
 }
 function startDateText(){const t=Date.parse(C.startDate||"");if(!t)return"";
   try{return new Date(t).toLocaleString("ar-SA-u-ca-gregory-nu-latn",{weekday:"long",day:"numeric",month:"long",hour:"numeric",minute:"2-digit",timeZone:"Asia/Riyadh"})}catch(e){return""}}
+const LIVE='<span class="livepill"><i class="ldot" aria-hidden="true"></i>جارية</span>';
 function miniCard(r,m){
   const a=G.slot(r,m,0),b=G.slot(r,m,1),w=G.winner(r,m),ws=G.wins(r,m),live=G.isLive(r,m);
   const row=(p,k)=>`<a class="pl ${w?(w===p?"w":"l"):""}" href="${link("player",p)}" style="text-decoration:none"><span class="nm">${esc(p)}</span>${G.need(r)>1?`<span class="sc">${ws[k]}</span>`:""}</a>`;
-  return`<div class="mt${live?" live":""}"><header><span><span class="no">#${G.matchNo(r,m)}</span><span class="tag ${G.isBo3(r)?"bo3":"bo1"}">${G.isBo3(r)?"BO3":"BO1"}</span></span>${live?'<span class="livepill">● جارية</span>':`<span>${G.RN(r)}</span>`}</header>${row(a,0)}${row(b,1)}</div>`;
+  return`<div class="mt${live?" live":""}" data-key="${K(r,m)}"><header><span><span class="no">#${G.matchNo(r,m)}</span><span class="tag ${G.isBo3(r)?"bo3":"bo1"}">${G.isBo3(r)?"BO3":"BO1"}</span></span>${live?LIVE:`<span>${G.RN(r)}</span>`}</header>${row(a,0)}${row(b,1)}</div>`;
 }
 function viewHome(){
   clearInterval(cdTimer);
@@ -272,7 +285,7 @@ function viewHome(){
    ${feed?`<div class="sec"><h3>${feedTitle}<a href="#/matches">كل المباريات</a></h3><div class="grid">${feed}</div></div>`:""}
    ${C.about?`<div class="sec"><h3>عن البطولة</h3><p class="about">${esc(C.about)}</p></div>`:""}
    <div class="sec"><h3>تصفح</h3><div class="qlinks">${ql}</div></div>`;
-  if(cd)cdTimer=setInterval(()=>{const el=$("cd");if(!el){clearInterval(cdTimer);return}const h=countdownHtml();if(!h){clearInterval(cdTimer);render();return}el.innerHTML=h},1000);
+  if(cd)cdTimer=setInterval(()=>{const el=$("cd");if(!el){clearInterval(cdTimer);return}const h=countdownHtml();if(!h){clearInterval(cdTimer);render();return}window.Motion?Motion.count(el,h):el.innerHTML=h},1000);
 }
 
 // ---- matches
@@ -285,7 +298,7 @@ function matchCard(r,m){
     const off=!a||!b||w;
     return`<button class="pl ${cls}" data-r="${r}" data-m="${m}" data-k="${k}" ${off?"disabled":""} aria-label="فوز ${esc(p)}"><span class="nm">${esc(p)}</span>${right}</button>`};
   const hasRes=(D.res[K(r,m)]||[]).length;
-  return`<div class="mt${live?" live":""}${hl?" hl":""}"><header><span><span class="no">#${G.matchNo(r,m)}</span>${bye?"":`<span class="tag ${bo===1?'bo1':'bo3'}">${bo===1?"BO1":"BO3"}</span>`}</span>${live?'<span class="livepill">● جارية</span>':""}${ce&&hasRes?`<button class="undo" data-u="${r}-${m}">تراجع</button>`:""}</header>${row(a,0)}${row(b,1)}</div>`}
+  return`<div class="mt${live?" live":""}${hl?" hl":""}" data-key="${K(r,m)}"><header><span><span class="no">#${G.matchNo(r,m)}</span>${bye?"":`<span class="tag ${bo===1?'bo1':'bo3'}">${bo===1?"BO1":"BO3"}</span>`}</span>${live?LIVE:""}${ce&&hasRes?`<button class="undo" data-u="${r}-${m}">تراجع</button>`:""}</header>${row(a,0)}${row(b,1)}</div>`}
 function viewRounds(){
   if(!G)return notStarted();
   const R=G.nRounds;if(UI.round===null||UI.round>=R)UI.round=G.curRound();
@@ -296,7 +309,7 @@ function viewRounds(){
   for(const m of order)cards+=matchCard(r,m);
   const hint=canEdit()?"اضغط على اسم اللاعب لتسجيل فوزه بالقيم. في BO3 أول من يكسب قيمين يتأهل.":"اضغط على أي لاعب عشان تشوف مشواره في البطولة. في BO3 أول من يكسب قيمين يتأهل.";
   $("main").innerHTML=`<div class="rounds">${pills}</div><p class="hint">${hint}</p><div class="grid${canEdit()?" can":""}">${cards}</div>`;
-  document.querySelectorAll(".rp").forEach(b=>b.onclick=()=>{UI.round=+b.dataset.round;render()});
+  document.querySelectorAll(".rp").forEach(b=>b.onclick=()=>{UI.round=+b.dataset.round;render("round")});
   if(canEdit()){
     document.querySelectorAll(".pl[data-r]").forEach(b=>b.onclick=()=>{b.disabled=true;Act.addWin(+b.dataset.r,+b.dataset.m,+b.dataset.k)});
     document.querySelectorAll("[data-u]").forEach(b=>b.onclick=()=>{const[r,m]=b.dataset.u.split("-").map(Number);Act.undo(r,m)});
@@ -312,7 +325,7 @@ function viewBracket(){
   for(let r=0;r<R;r++){pos[r]=[];for(let m=0;m<G.mCount(r);m++){const y=r===0?10+m*(H+V):(pos[r-1][m*2]+pos[r-1][m*2+1])/2;const x=10+r*(W+Gp);pos[r][m]=y;
     if(r>0)[0,1].forEach(k=>{const cy=pos[r-1][m*2+k],cw=G.winner(r-1,m*2+k);const hl=match(cw)?" hl":cw?" w":"";s+=`<path class="ln${hl}" d="M${x-Gp} ${cy+H/2}H${x-Gp/2}V${y+H/2}H${x}"/>`});
     const a=G.slot(r,m,0),b=G.slot(r,m,1),w=G.winner(r,m),ws=G.wins(r,m);
-    s+=`<g class="${match(a)||match(b)?"hlg":""}"><rect class="bx" x="${x}" y="${y}" width="${W}" height="${H}" rx="5"/>`;
+    s+=`<g class="${match(a)||match(b)?"hlg":""}" data-key="${K(r,m)}"><rect class="bx" x="${x}" y="${y}" width="${W}" height="${H}" rx="5"/>`;
     [a,b].forEach((p,k)=>{const c=!p?"l":w?(w===p?"w":"l"):"";s+=`<text class="tx ${c}" x="${x+W-8}" y="${y+16+k*19}" text-anchor="end">${p?esc(p.length>16?p.slice(0,15)+"…":p):(r===0?"تأهل مباشر":"—")}</text>`;
       if(p&&G.isBo3(r)&&!G.isBye(r,m))s+=`<text class="tx ${c}" x="${x+10}" y="${y+16+k*19}">${ws[k]}</text>`});s+=`</g>`}}
   const width=20+R*(W+Gp),height=20+G.mCount(0)*(H+V);
@@ -323,9 +336,10 @@ function viewBracket(){
   const fit=()=>{Z.z=Math.min(vp.clientWidth/width,1);Z.x=0;Z.y=10;ap()};
   if(Q){const r0=pos[0].findIndex((y,m)=>match(G.slot(0,m,0))||match(G.slot(0,m,1)));if(r0>=0){Z.z=.9;Z.y=-pos[0][r0]*Z.z+vp.clientHeight/2;Z.x=10}}
   ap();
-  $("zi").onclick=()=>{Z.z=Math.min(2,Z.z*1.25);ap()};$("zo").onclick=()=>{Z.z=Math.max(.12,Z.z/1.25);ap()};$("zr").onclick=fit;
-  vp.onwheel=e=>{e.preventDefault();const rc=vp.getBoundingClientRect(),mx=e.clientX-rc.left,my=e.clientY-rc.top,f=e.deltaY<0?1.12:.89,nz=Math.min(2,Math.max(.12,Z.z*f));Z.x=mx-(mx-Z.x)*nz/Z.z;Z.y=my-(my-Z.y)*nz/Z.z;Z.z=nz;ap()};
-  let d=null;vp.onpointerdown=e=>{d=[e.clientX-Z.x,e.clientY-Z.y];vp.setPointerCapture(e.pointerId);vp.style.cursor="grabbing"};
+  const za=f=>()=>{window.Motion&&Motion.zoom(sv);f()};   // أزرار التكبير تنزلق، السحب والعجلة تبقى فورية
+  $("zi").onclick=za(()=>{Z.z=Math.min(2,Z.z*1.25);ap()});$("zo").onclick=za(()=>{Z.z=Math.max(.12,Z.z/1.25);ap()});$("zr").onclick=za(fit);
+  vp.onwheel=e=>{e.preventDefault();sv.classList.remove("za");const rc=vp.getBoundingClientRect(),mx=e.clientX-rc.left,my=e.clientY-rc.top,f=e.deltaY<0?1.12:.89,nz=Math.min(2,Math.max(.12,Z.z*f));Z.x=mx-(mx-Z.x)*nz/Z.z;Z.y=my-(my-Z.y)*nz/Z.z;Z.z=nz;ap()};
+  let d=null;vp.onpointerdown=e=>{sv.classList.remove("za");d=[e.clientX-Z.x,e.clientY-Z.y];vp.setPointerCapture(e.pointerId);vp.style.cursor="grabbing"};
   vp.onpointermove=e=>{if(d){Z.x=e.clientX-d[0];Z.y=e.clientY-d[1];ap()}};vp.onpointerup=()=>{d=null;vp.style.cursor="grab"};
 }
 
@@ -501,14 +515,14 @@ function artPlace(){
 
 // ---------- welcome
 const W=$("welcome");
-function closeWelcome(){if(W.hidden)return;W.classList.add("out");setTimeout(()=>{W.hidden=true;W.classList.remove("out");artPlace()},matchMedia("(prefers-reduced-motion: reduce)").matches?0:340)}
+function closeWelcome(){if(W.hidden||W.classList.contains("out"))return;W.classList.add("out");window.Motion&&Motion.welcomeOut();setTimeout(()=>{W.hidden=true;W.classList.remove("out");artPlace()},matchMedia("(prefers-reduced-motion: reduce)").matches?0:340)}
 function openWelcome(){W.hidden=false;window.scrollTo(0,0);$("enter").focus();artPlace()}
 $("enter").onclick=closeWelcome;
 addEventListener("keydown",e=>{if(e.key==="Escape")closeWelcome()});
 
 // ---------- search (shared by matches, bracket and players)
 let qt;$("q").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{Q=e.target.value.trim();
-  if(Q&&G&&route().page==="matches"){for(let r=G.nRounds-1;r>=0;r--){let f=false;for(let m=0;m<G.mCount(r);m++)if(match(G.slot(r,m,0))||match(G.slot(r,m,1))){f=true;break}if(f){UI.round=r;break}}}render()},200)};
+  if(Q&&G&&route().page==="matches"){for(let r=G.nRounds-1;r>=0;r--){let f=false;for(let m=0;m<G.mCount(r);m++)if(match(G.slot(r,m,0))||match(G.slot(r,m,1))){f=true;break}if(f){UI.round=r;break}}}render("search")},200)};
 
 // ---------- cloud (Firebase)
 function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement("script");s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
@@ -528,7 +542,7 @@ async function initCloud(){
 
 // ---------- boot
 brand();skins();
-addEventListener("hashchange",render);
+addEventListener("hashchange",()=>window.Motion?Motion.page(render):render());
 const landing=route().page==="home"&&!/^#\/./.test(location.hash);
 if(C.welcome&&C.welcome.show!==false&&landing)openWelcome();
 artPlace();

@@ -88,7 +88,8 @@ input::placeholder{color:var(--mute)}
 .mt header{display:flex;justify-content:space-between;align-items:center;gap:6px;padding:4px 10px;font-size:12px;color:var(--mute);background:var(--panel2);border-bottom:1px solid var(--line)}
 .mt header .no{font-family:var(--display);letter-spacing:.04em;font-size:13px}
 .livepill{color:var(--live-text);font-weight:800}
-.pl{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;width:100%;background:none;border:0;color:var(--fg);font-weight:700;font-size:15px;padding:9px 10px;text-align:start}
+.ldot{position:relative;display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-inline-end:6px;vertical-align:middle}
+.pl{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;width:100%;box-sizing:border-box;background:none;border:0;color:var(--fg);font-weight:700;font-size:15px;padding:9px 10px;text-align:start}
 .can .pl:not(:disabled){cursor:pointer}
 .pl+.pl{border-top:1px solid var(--line)}
 .can .pl:hover:not(:disabled){background:var(--panel2)}
@@ -264,6 +265,7 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
 @keyframes wOut{to{opacity:0;transform:scale(1.03)}}
 @media (max-width:720px){.hero{grid-template-columns:1fr}.wm{font-size:120px;bottom:auto;top:-10px}.stats{grid-template-columns:repeat(3,1fr)}}
 </style>
+<link rel="stylesheet" href="motion.css">
 </head>
 <body>
 
@@ -313,6 +315,7 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
 </div>
 
 <script src="config.js"></script>
+<script src="motion.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

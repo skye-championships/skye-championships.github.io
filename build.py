@@ -1,4 +1,4 @@
-# يجمع index.html و motion.css و config.js و motion.js و app.js و box.js والصور في ملف واحد tournament-site.html
+# يجمع index.html و motion.css و config.js و motion.js و app.js و trophy.js والصور في ملف واحد tournament-site.html
 # الملف الواحد يفتح بدون سيرفر، بس ما فيه تثبيت كتطبيق (PWA)
 import base64, mimetypes, re
 from pathlib import Path
@@ -18,7 +18,7 @@ s = s.replace('<script src="config.js"></script>', "<script>\n" + config + "\n</
 s = s.replace('<link rel="stylesheet" href="motion.css">', "<style>\n" + (d / "motion.css").read_text(encoding="utf-8") + "\n</style>")
 s = s.replace('<script src="motion.js"></script>', "<script>\n" + (d / "motion.js").read_text(encoding="utf-8") + "\n</script>")
 s = s.replace('<script src="app.js"></script>', "<script>\n" + (d / "app.js").read_text(encoding="utf-8") + "\n</script>")
-s = s.replace('<script src="box.js"></script>', "<script>\n" + (d / "box.js").read_text(encoding="utf-8") + "\n</script>")
+s = s.replace('<script src="trophy.js"></script>', "<script>\n" + (d / "trophy.js").read_text(encoding="utf-8") + "\n</script>")
 s = s.replace('<link rel="manifest" href="manifest.webmanifest">\n', "")
 s = re.sub(r'(<link rel="(?:icon|apple-touch-icon)" href=")([^"]+)"', lambda m: m.group(1) + data_uri(m.group(2)) + '"', s)
 (d / "tournament-site.html").write_text(s, encoding="utf-8")

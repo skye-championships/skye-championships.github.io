@@ -66,7 +66,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 @media (max-width:520px){.skb span{display:none}.skb{padding-inline:4px 8px}}
 
 /* hero */
-/* البطاقة العلوية: النص يمين، والبوكس ثلاثي الأبعاد يسار (box.js) */
+/* البطاقة العلوية: النص يمين، والكأس ثلاثي الأبعاد يسار (trophy.js) */
 .hero{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,44%);gap:8px 20px;align-items:center;padding:26px 28px 22px;margin-bottom:16px;border-radius:16px;overflow:hidden;background:radial-gradient(520px 380px at 22% 50%,color-mix(in srgb,var(--acc) 16%,transparent),transparent 70%),color-mix(in srgb,var(--panel) 55%,transparent);border:1px solid var(--line);color:var(--fg)}
 .wm{position:absolute;left:-6px;bottom:-34px;font-family:var(--display);font-size:200px;line-height:1;color:transparent;-webkit-text-stroke:2px var(--acc);opacity:.12;pointer-events:none;direction:ltr;white-space:nowrap}
 .h-txt{display:grid;justify-items:start;gap:14px}
@@ -75,46 +75,14 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .h-cta .btn{text-decoration:none;font-size:15px;padding:12px 26px}
 .h-cta .btn.g{background:transparent}
 .stats{justify-content:start}
-/* البوكس: أرضية + ٤ جدران + سقف، كل وجه ٣×٣ بلاطات مثل جدار فورتنايت لما تسوي له إيدت */
-.hbox{--s:clamp(150px,17vw,212px);position:relative;align-self:stretch;min-height:calc(var(--s)*1.85);display:grid;place-items:center;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+/* الكأس ثلاثي الأبعاد (trophy.js): يرسم في canvas يعبي المساحة */
+.hbox{position:relative;align-self:stretch;min-height:420px;margin:-26px 0 -22px -28px;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
 .hbox.drag{cursor:grabbing}
-.bx-sc{direction:ltr;perspective:calc(var(--s)*4.6);perspective-origin:50% 35%}
-.bx-cube{position:relative;width:var(--s);height:var(--s);transform-style:preserve-3d;transform:rotateX(-20deg) rotateY(-32deg)}
-.bx-f{position:absolute;inset:0;display:grid;grid-template:repeat(3,1fr)/repeat(3,1fr);gap:0;transform-style:preserve-3d;transform:var(--ft) translateZ(calc(var(--s)/2));transition:gap .25s}
-.bx-f i{position:relative;display:block;opacity:0;background:color-mix(in srgb,var(--acc) 22%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--acc) 85%,transparent);transition:opacity .2s,scale .22s cubic-bezier(.3,.7,.4,1),transform .75s cubic-bezier(.2,.7,.3,1)}
-/* خامة الجدار مرسومة على الوجه كامل (إطار + عارضتين + ألواح معدن)، وكل بلاطة تاخذ جزها منها، فيبان الجدار قطعة وحدة */
-.bx-f i b{position:absolute;inset:0;transform:scaleY(0);transform-origin:50% 100%;transition:transform .14s linear calc(var(--row)*.14s),box-shadow .2s;
-  --fr:color-mix(in srgb,var(--acc) 60%,var(--fg) 40%);--bm:color-mix(in srgb,var(--panel) 55%,transparent);
-  background:
-    linear-gradient(90deg,var(--fr) 0 3.2%,color-mix(in srgb,var(--panel) 50%,transparent) 3.2% 4.4%,transparent 4.4% 95.6%,color-mix(in srgb,var(--panel) 50%,transparent) 95.6% 96.8%,var(--fr) 96.8%),
-    linear-gradient(var(--fr) 0 3.2%,transparent 3.2% 96.8%,var(--fr) 96.8%),
-    linear-gradient(transparent 0 31.5%,var(--bm) 31.5% 35.5%,transparent 35.5% 64.5%,var(--bm) 64.5% 68.5%,transparent 68.5%),
-    repeating-linear-gradient(90deg,color-mix(in srgb,var(--fg) 10%,transparent) 0 1.4%,transparent 1.4% 4.2%),
-    linear-gradient(165deg,color-mix(in srgb,var(--acc) 62%,var(--panel2)),color-mix(in srgb,var(--acc) 26%,var(--panel)) 85%);
-  background-size:300% 300%;background-position:calc(var(--c)*50%) calc(var(--r)*50%)}
-/* الإضاءة (--lit) والضرر (--hp) يغمقون البلاطة */
-.bx-f i::after{content:"";position:absolute;inset:0;background:#000;opacity:calc((1 - var(--lit,1))*.7 + (1 - var(--hp,1))*.35);pointer-events:none}
-.bx-f.bp i{opacity:1}
-.bx-f.on i{background:none;box-shadow:none}
-.bx-f.on i b{transform:none}
-.bx-f.edm{gap:3px}
-.bx-f.edm i b{box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--hi) 90%,#fff)}
-.bx-f.on i.sel b{box-shadow:inset 0 0 0 2px var(--hi),inset 0 0 26px color-mix(in srgb,var(--hi) 60%,transparent)}
-.bx-f i.ed{scale:.12;opacity:0}
-.bx-f.gone i{transform:var(--g);opacity:0;transition:transform .75s cubic-bezier(.2,.7,.3,1),opacity .6s ease-in .15s}
-.bx-f.now i,.bx-f.now i b{transition:none}
-/* الكأس داخل البوكس: دايم مقابلك، ويطلع نوره من بين البلاطات */
-.bx-cup{position:absolute;left:50%;top:50%;width:calc(var(--s)*.5);aspect-ratio:100/112;transform:translate(-50%,-50%) var(--cr,none);color:var(--acc);filter:drop-shadow(0 0 calc(var(--s)*.08) var(--acc))}
-.bx-cup svg{width:100%;height:100%;display:block;fill:currentColor}
-.bx-cup .cs{fill:var(--acc-fg)}
-/* شبكة البناء تحت البوكس: كل مربع بحجم قطعة بناء */
-.bx-gnd{position:absolute;left:-100%;top:-100%;width:300%;height:300%;transform:rotateX(90deg) translateZ(calc(var(--s)/-2 - 2px));pointer-events:none;
-  background:radial-gradient(closest-side,color-mix(in srgb,var(--acc) 30%,transparent),transparent 55%),linear-gradient(90deg,color-mix(in srgb,var(--fg) 22%,transparent) 0 1.5px,transparent 1.5px) 0 0/var(--s) var(--s),linear-gradient(color-mix(in srgb,var(--fg) 22%,transparent) 0 1.5px,transparent 1.5px) 0 0/var(--s) var(--s);
-  -webkit-mask-image:radial-gradient(closest-side,#000 18%,transparent 62%);mask-image:radial-gradient(closest-side,#000 18%,transparent 62%)}
-.bx-tip{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:12px;font-weight:800;color:var(--mute);transition:opacity .4s;pointer-events:none}
-.bx-tip.off{opacity:0}
-.bx-dmg{position:absolute;z-index:3;pointer-events:none;font-family:var(--display);font-style:italic;font-size:30px;line-height:1;color:#c9f6ff;-webkit-text-stroke:1.2px #04121c;text-shadow:0 3px 0 #04121c99;direction:ltr;transform:translate(-50%,-50%);white-space:nowrap}
-.bx-dmg.big{font-size:36px;color:#ffe14d}
+.hbox canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.tr-tip{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:12px;font-weight:800;color:var(--mute);transition:opacity .4s;pointer-events:none}
+.tr-tip.off{opacity:0}
+.hbox.fb{display:grid;place-items:center;cursor:default}
+.tr-fb{width:min(46%,190px);fill:var(--acc);filter:drop-shadow(0 0 24px var(--acc))}
 .hero>*:not(.wm){position:relative;z-index:1;min-width:0}
 .fnb{display:inline-block;font-family:var(--display);font-size:18px;letter-spacing:.04em;padding:2px 12px;border-radius:6px;background:#0d0d10;border:1px solid #ffffff22;transform:skew(-6deg)}
 .fnb b{font-weight:400;background:linear-gradient(180deg,#8ff0ff,#1c9bff 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -368,9 +336,7 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
 .kcard p{margin:0;font-weight:900;font-size:17px;line-height:1.5}
 .kcard small{color:#5b5b66;font-weight:700;font-size:12px}
 .kdots{display:flex;gap:6px}.kdots i{width:10px;height:10px;box-sizing:border-box;border-radius:50%;border:1.5px solid currentColor}.kdots i.on{background:currentColor}
-@media (max-width:820px){.hero{grid-template-columns:1fr;padding:18px 16px}.hbox{order:-1;--s:clamp(118px,38vw,170px);min-height:calc(var(--s)*1.75);margin:-6px 0 -10px}.h-txt{justify-items:stretch}.h-txt>.fnb{justify-self:start}.wm{font-size:120px;bottom:auto;top:-10px}.stats{grid-template-columns:repeat(3,1fr)}.h-cta .btn{flex:1;text-align:center}}
-@media (prefers-reduced-motion:no-preference){.bx-cup{animation:bxBob 3.2s ease-in-out infinite}}
-@keyframes bxBob{50%{translate:0 -7px}}
+@media (max-width:820px){.hero{grid-template-columns:1fr;padding:18px 16px}.hbox{order:-1;min-height:min(86vw,340px);margin:-18px -16px -6px}.h-txt{justify-items:stretch}.h-txt>.fnb{justify-self:start}.wm{font-size:120px;bottom:auto;top:-10px}.stats{grid-template-columns:repeat(3,1fr)}.h-cta .btn{flex:1;text-align:center}}
 </style>
 <link rel="stylesheet" href="motion.css">
 </head>
@@ -436,6 +402,6 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
 <script src="config.js"></script>
 <script src="motion.js"></script>
 <script src="app.js"></script>
-<script src="box.js"></script>
+<script src="trophy.js"></script>
 </body>
 </html>

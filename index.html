@@ -66,7 +66,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 @media (max-width:520px){.skb span{display:none}.skb{padding-inline:4px 8px}}
 
 /* hero */
-/* البطاقة العلوية: النص يمين، والكأس ثلاثي الأبعاد يسار (trophy.js) */
+/* البطاقة العلوية: النص يمين، والعداد يسار */
 .hero{position:relative;display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,44%);gap:8px 20px;align-items:center;padding:26px 28px 22px;margin-bottom:16px;border-radius:16px;overflow:hidden;background:radial-gradient(520px 380px at 22% 50%,color-mix(in srgb,var(--acc) 16%,transparent),transparent 70%),color-mix(in srgb,var(--panel) 55%,transparent);border:1px solid var(--line);color:var(--fg)}
 .wm{position:absolute;left:-6px;bottom:-34px;font-family:var(--display);font-size:200px;line-height:1;color:transparent;-webkit-text-stroke:2px var(--acc);opacity:.12;pointer-events:none;direction:ltr;white-space:nowrap}
 .h-txt{display:grid;justify-items:start;gap:14px}
@@ -75,14 +75,33 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-vis
 .h-cta .btn{text-decoration:none;font-size:15px;padding:12px 26px}
 .h-cta .btn.g{background:transparent}
 .stats{justify-content:start}
-/* الكأس ثلاثي الأبعاد (trophy.js): يرسم في canvas يعبي المساحة */
-.hbox{position:relative;align-self:stretch;min-height:420px;margin:-26px 0 -22px -28px;cursor:grab;touch-action:pan-y;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
-.hbox.drag{cursor:grabbing}
-.hbox canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.tr-tip{position:absolute;bottom:12px;left:0;right:0;text-align:center;font-size:12px;font-weight:800;color:var(--mute);transition:opacity .4s;pointer-events:none}
-.tr-tip.off{opacity:0}
-.hbox.fb{display:grid;place-items:center;cursor:default}
-.tr-fb{width:min(46%,190px);fill:var(--acc);filter:drop-shadow(0 0 24px var(--acc))}
+/* العداد: لوحة مثل لوحات المطارات، كل خانة نصين والرقم اللي يتغير بس يقلب. الحجم يتبع عرض العمود (cqi) */
+.hclock{container-type:inline-size;position:relative;display:grid;align-content:center;justify-items:center;gap:16px;min-height:300px;padding:10px 0;text-align:center}
+.hc-k{display:grid;gap:2px}
+.hc-k small{font-family:var(--display);font-size:13px;letter-spacing:.34em;padding-left:.34em;color:var(--acc);direction:ltr}
+.hc-k b{font-size:19px;font-weight:900;color:var(--fg)}
+.hc-line{margin:0;font-size:14px;font-weight:700;color:var(--mute)}
+.flaps{--w:clamp(30px,9cqi,72px);display:flex;align-items:flex-start;gap:1.4cqi;direction:ltr}
+.fgp{display:grid;gap:8px;justify-items:center}
+.flaps.one{--w:clamp(44px,15cqi,96px)}
+.fgp>small{font-size:12px;font-weight:800;color:var(--mute)}
+.ts{display:flex;gap:max(3px,.7cqi)}
+.flaps .sep{font-family:var(--display);font-size:calc(var(--w)*.72);line-height:calc(var(--w)*1.38);color:var(--acc)}
+.fl{position:relative;display:block;width:var(--w);height:calc(var(--w)*1.38);font:400 calc(var(--w)*1.02)/calc(var(--w)*1.38) var(--display);color:var(--fg);perspective:calc(var(--w)*5);border-radius:calc(var(--w)*.13);box-shadow:0 12px 24px -12px var(--shadow),0 0 0 1px var(--line);font-variant-numeric:tabular-nums}
+.fl .h{position:absolute;left:0;right:0;height:50%;overflow:hidden;font-style:normal;backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.fl .h span{position:absolute;left:0;right:0;height:200%;text-align:center}
+.fl .t{top:0;border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0;background:linear-gradient(color-mix(in srgb,var(--panel2) 92%,var(--fg)),var(--panel2))}
+.fl .t span{top:0}
+.fl .b{bottom:0;border-radius:inherit;border-top-left-radius:0;border-top-right-radius:0;background:linear-gradient(color-mix(in srgb,var(--panel2) 90%,#000),var(--panel))}
+.fl .b span{bottom:0}
+.fl::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:color-mix(in srgb,var(--bg) 75%,#000);z-index:3}
+.fl::before{content:"";position:absolute;left:-2px;right:-2px;top:50%;height:8px;margin-top:-4px;background:linear-gradient(90deg,var(--line) 0 3px,transparent 3px calc(100% - 3px),var(--line) calc(100% - 3px));z-index:4;border-radius:2px}
+.fl .ft{z-index:2;transform-origin:50% 100%;animation:flTop .26s ease-in forwards}
+.fl .fb{z-index:2;transform-origin:50% 0;transform:rotateX(90deg);animation:flBot .26s .24s ease-out forwards}
+@keyframes flTop{to{transform:rotateX(-90deg);filter:brightness(.6)}}
+@keyframes flBot{from{filter:brightness(1.5)}to{transform:none}}
+.hc-name{font-size:clamp(34px,11cqi,72px);font-weight:900;line-height:1.15;color:var(--acc);text-shadow:3px 3px 0 var(--shadow);overflow-wrap:anywhere;max-width:100%}
+@container (max-width:470px){.flaps{--w:13.5cqi;display:grid;grid-template-columns:repeat(2,auto);gap:14px 7cqi}.flaps .sep{display:none}}
 .hero>*:not(.wm){position:relative;z-index:1;min-width:0}
 .fnb{display:inline-block;font-family:var(--display);font-size:18px;letter-spacing:.04em;padding:2px 12px;border-radius:6px;background:#0d0d10;border:1px solid #ffffff22;transform:skew(-6deg)}
 .fnb b{font-weight:400;background:linear-gradient(180deg,#8ff0ff,#1c9bff 70%);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -336,7 +355,7 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
 .kcard p{margin:0;font-weight:900;font-size:17px;line-height:1.5}
 .kcard small{color:#5b5b66;font-weight:700;font-size:12px}
 .kdots{display:flex;gap:6px}.kdots i{width:10px;height:10px;box-sizing:border-box;border-radius:50%;border:1.5px solid currentColor}.kdots i.on{background:currentColor}
-@media (max-width:820px){.hero{grid-template-columns:1fr;padding:18px 16px}.hbox{order:-1;min-height:min(86vw,340px);margin:-18px -16px -6px}.h-txt{justify-items:stretch}.h-txt>.fnb{justify-self:start}.wm{font-size:120px;bottom:auto;top:-10px}.stats{grid-template-columns:repeat(3,1fr)}.h-cta .btn{flex:1;text-align:center}}
+@media (max-width:820px){.hero{grid-template-columns:1fr;padding:18px 16px}.hclock{order:-1;min-height:0;padding:6px 0 10px}.h-txt{justify-items:stretch}.h-txt>.fnb{justify-self:start}.wm{font-size:120px;bottom:auto;top:-10px}.stats{grid-template-columns:repeat(3,1fr)}.h-cta .btn{flex:1;text-align:center}}
 </style>
 <link rel="stylesheet" href="motion.css">
 </head>
@@ -383,7 +402,7 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
       <div class="facts" id="facts"></div>
       <div class="stats" id="stats"></div>
     </div>
-    <div class="hbox" id="hbox" aria-hidden="true"></div>
+    <div class="hclock" id="hclock"></div>
   </section>
 
   <div class="banner" id="banner" hidden></div>
@@ -402,6 +421,5 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
 <script src="config.js"></script>
 <script src="motion.js"></script>
 <script src="app.js"></script>
-<script src="trophy.js"></script>
 </body>
 </html>

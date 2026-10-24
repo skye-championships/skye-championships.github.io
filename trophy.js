@@ -92,7 +92,7 @@ starM.position.set(0,sy,sr-.01);starM.rotation.x=-.2;trophy.add(starM);
 trophy.position.y=.62;
 
 // ---------- القاعدة: درجتين سوداء لامعة، وبينهم إطار ذهبي، وقدامها لوحة محفور فيها اسم البطولة
-const lacq=new T.MeshPhysicalMaterial({color:0x030305,metalness:.1,roughness:.42,clearcoat:1,clearcoatRoughness:.12,envMapIntensity:.6});
+const lacq=new T.MeshPhysicalMaterial({color:0x040406,metalness:.25,roughness:.5,clearcoat:.45,clearcoatRoughness:.3,envMapIntensity:.32});
 const base=new T.Group();
 const b1=new T.Mesh(new T.BoxGeometry(1.9,.36,1.9),lacq);b1.position.y=.18;base.add(b1);
 const trim=new T.Mesh(new T.BoxGeometry(1.62,.05,1.62),gold);trim.position.y=.385;base.add(trim);

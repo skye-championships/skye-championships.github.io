@@ -291,6 +291,47 @@ function stats(){
     let alive=0;for(let m=0;m<G.mCount(cr);m++){alive+=G.winner(cr,m)?1:(G.slot(cr,m,0)?1:0)+(G.slot(cr,m,1)?1:0)}
     $("stats").innerHTML=`<div class="chip"><b>${n}</b><span>لاعب</span></div><div class="chip"><b>${ch?1:alive}</b><span>باقين</span></div><div class="chip"><b class="t">${ch?"انتهت":G.RN(cr)}</b><span>الدور الحالي</span></div>`;
   }else $("stats").innerHTML=`<div class="chip"><b>${n}</b><span>لاعب</span></div>`;
+  // أزرار سريعة تحت العنوان: قبل البطولة التسجيل، وبعدها المباريات والبراكت
+  const pre=!G&&!PAGES.register.hidden(),btn=(k,t,g)=>`<a class="btn${g?" g":""}" href="#/${k}">${t}</a>`;
+  const cta=pre?btn("register","سجّل الحين")+(PAGES.rules.hidden()?"":btn("rules","القوانين",1)):btn("matches",G&&G.champ()?"النتائج":"شوف المباريات")+btn("bracket","البراكت",1);
+  if($("h-cta").innerHTML!==cta)$("h-cta").innerHTML=cta;
+  heroClock();
+}
+
+// ---------- القطعة الرئيسية: عداد مثل لوحات المطارات. قبل البطولة يعد للبداية، وقت البطولة يعرض اللاعبين الباقين، وبعدها اسم البطل
+const pad2=v=>String(v).padStart(2,"0");
+const flapHalves=(top,bot)=>`<i class="h t"><span>${esc(top)}</span></i><i class="h b"><span>${esc(bot)}</span></i>`;
+function flapSet(box,str){
+  const ch=[...str],tiles=[...box.children];
+  if(tiles.length!==ch.length){box.innerHTML=ch.map(c=>`<b class="fl" data-v="${esc(c)}">${flapHalves(c,c)}</b>`).join("");return}
+  const still=matchMedia("(prefers-reduced-motion: reduce)").matches||document.hidden;
+  tiles.forEach((t,i)=>{const n=ch[i],o=t.dataset.v;if(n===o)return;t.dataset.v=n;clearTimeout(t._t);
+    if(still){t.innerHTML=flapHalves(n,n);return}
+    // النص الفوق الجديد ثابت ورا، والقديم يطيح لتحت، بعدين النص التحت الجديد ينزل مكانه
+    t.innerHTML=flapHalves(n,o)+`<i class="h t ft"><span>${esc(o)}</span></i><i class="h b fb"><span>${esc(n)}</span></i>`;
+    t._t=setTimeout(()=>{t.innerHTML=flapHalves(n,n)},560)});
+}
+let hcTimer=null;
+function heroClock(){
+  const el=$("hclock");if(!el)return;
+  const t=Date.parse(C.startDate||""),left=t?t-Date.now():0,ch=G&&G.champ(),n=D?D.players.length:0;
+  let mode,k,label,line,groups=[];
+  if(ch){mode="champ";k="CHAMPION";label="🏆 بطل البطولة";line=C.mode?`${C.mode.main||""} ${C.mode.tag||""}`.trim():""}
+  else if(left>0){mode="cd";k="KICKOFF IN";label="باقي على البداية";line=startDateText();
+    const s=Math.floor(left/1e3);groups=[[pad2(Math.floor(s/86400)),"يوم"],[pad2(Math.floor(s/3600)%24),"ساعة"],[pad2(Math.floor(s/60)%60),"دقيقة"],[pad2(s%60),"ثانية"]]}
+  else if(G){mode="live";k="LIVE NOW";label="البطولة جارية";const cr=G.curRound();
+    let alive=0;for(let m=0;m<G.mCount(cr);m++){alive+=G.winner(cr,m)?1:(G.slot(cr,m,0)?1:0)+(G.slot(cr,m,1)?1:0)}
+    groups=[[pad2(alive),"لاعب باقي"]];line=`${G.RN(cr)} · الدور ${cr+1} من ${G.nRounds}`}
+  else{mode="wait";k="COMING SOON";label="البطولة ما بدأت للحين";line=startDateText()||"الموعد يُعلن قريب";groups=[[pad2(n),"لاعب مسجل"]]}
+  const sig=mode+groups.map(g=>g[0].length+g[1]).join();
+  if(el.dataset.sig!==sig){el.dataset.sig=sig;
+    el.innerHTML=`<div class="hc-k"><small>${k}</small><b id="hc-l"></b></div>`+(mode==="champ"?`<div class="hc-name" id="hc-name"></div>`:
+      `<div class="flaps${groups.length===1?" one":""}" aria-hidden="true">${groups.map((g,i)=>`${i?'<span class="sep">:</span>':""}<div class="fgp"><div class="ts"></div><small>${esc(g[1])}</small></div>`).join("")}</div><span class="vh" id="hc-sr"></span>`)+`<p class="hc-line" id="hc-line"></p>`}
+  $("hc-l").textContent=label;$("hc-line").textContent=line||"";
+  if(mode==="champ")$("hc-name").textContent=ch;
+  else{el.querySelectorAll(".ts").forEach((b,i)=>flapSet(b,groups[i][0]));const sr=groups.map(g=>`${+g[0]} ${g[1]}`).join("، ");if($("hc-sr").textContent!==sr)$("hc-sr").textContent=sr}
+  clearInterval(hcTimer);hcTimer=null;
+  if(mode==="cd")hcTimer=setInterval(()=>{if(!$("hero").hidden&&!document.hidden)heroClock()},1000);
 }
 function banner(){
   const b=$("banner");
@@ -323,13 +364,6 @@ function notStarted(){
 }
 
 // ---- home
-let cdTimer=null;
-function countdownHtml(){
-  const t=Date.parse(C.startDate||"");if(!t)return null;let d=t-Date.now();if(d<=0)return null;
-  const days=Math.floor(d/864e5),hrs=Math.floor(d/36e5)%24,min=Math.floor(d/6e4)%60,sec=Math.floor(d/1e3)%60;
-  const p=(v,l)=>`<div><b>${String(v).padStart(2,"0")}</b><span>${l}</span></div>`;
-  return p(days,"يوم")+p(hrs,"ساعة")+p(min,"دقيقة")+p(sec,"ثانية");
-}
 function startDateText(){const t=Date.parse(C.startDate||"");if(!t)return"";
   try{return new Date(t).toLocaleString("ar-SA-u-ca-gregory-nu-latn",{weekday:"long",day:"numeric",month:"long",hour:"numeric",minute:"2-digit",timeZone:"Asia/Riyadh"})}catch(e){return""}}
 const LIVE='<span class="livepill"><i class="ldot" aria-hidden="true"></i>جارية</span>';
@@ -339,13 +373,7 @@ function miniCard(r,m){
   return`<div class="mt${live?" live":""}" data-key="${K(r,m)}"><header><span><span class="no">#${G.matchNo(r,m)}</span><span class="tag ${G.isBo3(r)?"bo3":"bo1"}">${G.isBo3(r)?"BO3":"BO1"}</span></span>${live?LIVE:`<span>${G.RN(r)}</span>`}</header>${row(a,0)}${row(b,1)}</div>`;
 }
 function viewHome(){
-  clearInterval(cdTimer);
-  const ch=G&&G.champ(),cd=countdownHtml();
-  let status;
-  if(ch)status=`<div class="champ on" style="margin:0"><div>🏆 بطل البطولة</div><b>${esc(ch)}</b></div>`;
-  else if(cd&&!(D&&Object.keys(D.res).length))status=`<div class="panel status"><div class="cd" id="cd">${cd}</div><div><h4>باقي على البداية</h4><p>${esc(startDateText())}</p></div></div>`;
-  else if(G)status=`<div class="panel status"><div class="cd"><div><b>${G.curRound()+1}</b><span>من ${G.nRounds}</span></div></div><div><h4>البطولة جارية · ${G.RN(G.curRound())}</h4><p>النتائج تنزل أول بأول في صفحة المباريات.</p></div></div>`;
-  else status=`<div class="panel status"><div><h4>البطولة ما بدأت للحين</h4><p>${esc(startDateText())||"الموعد يُعلن قريب"}</p></div></div>`;
+  const ch=G&&G.champ();
   // live first, then next unplayed matches of the current round
   let feed="",feedTitle="";
   if(G&&!ch){const cr=G.curRound(),live=[],next=[];
@@ -357,13 +385,11 @@ function viewHome(){
     .filter(([k])=>!(PAGES[k].hidden&&PAGES[k].hidden())).map(([k,t,s])=>`<a class="ql" href="#/${k}"><b>${t}</b><span>${s}</span></a>`).join("")
     +(MANIFEST?`<button class="ql" id="qinst" type="button"${canInstall()?"":" hidden"}><b>ثبّت الموقع</b><span>افتحه من شاشتك كتطبيق</span></button>`:"");
   $("main").innerHTML=`
-   <div class="sec">${status}</div>
    ${reg?`<div class="sec">${reg}</div>`:""}
    ${feed?`<div class="sec"><h3>${feedTitle}<a href="#/matches">كل المباريات</a></h3><div class="grid">${feed}</div></div>`:""}
    ${C.about?`<div class="sec"><h3>عن البطولة</h3><p class="about">${esc(C.about)}</p></div>`:""}
    <div class="sec"><h3>تصفح</h3><div class="qlinks">${ql}</div></div>`;
   const qi=$("qinst");if(qi)qi.onclick=install;
-  if(cd)cdTimer=setInterval(()=>{const el=$("cd");if(!el){clearInterval(cdTimer);return}const h=countdownHtml();if(!h){clearInterval(cdTimer);render();return}window.Motion?Motion.count(el,h):el.innerHTML=h},1000);
 }
 
 // ---- matches

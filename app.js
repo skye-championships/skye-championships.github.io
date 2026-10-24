@@ -291,6 +291,10 @@ function stats(){
     let alive=0;for(let m=0;m<G.mCount(cr);m++){alive+=G.winner(cr,m)?1:(G.slot(cr,m,0)?1:0)+(G.slot(cr,m,1)?1:0)}
     $("stats").innerHTML=`<div class="chip"><b>${n}</b><span>لاعب</span></div><div class="chip"><b>${ch?1:alive}</b><span>باقين</span></div><div class="chip"><b class="t">${ch?"انتهت":G.RN(cr)}</b><span>الدور الحالي</span></div>`;
   }else $("stats").innerHTML=`<div class="chip"><b>${n}</b><span>لاعب</span></div>`;
+  // أزرار سريعة تحت العنوان: قبل البطولة التسجيل، وبعدها المباريات والبراكت
+  const pre=!G&&!PAGES.register.hidden(),btn=(k,t,g)=>`<a class="btn${g?" g":""}" href="#/${k}">${t}</a>`;
+  const cta=pre?btn("register","سجّل الحين")+(PAGES.rules.hidden()?"":btn("rules","القوانين",1)):btn("matches",G&&G.champ()?"النتائج":"شوف المباريات")+btn("bracket","البراكت",1);
+  if($("h-cta").innerHTML!==cta)$("h-cta").innerHTML=cta;
 }
 function banner(){
   const b=$("banner");

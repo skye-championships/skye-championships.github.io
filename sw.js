@@ -1,7 +1,7 @@
 // يخلي الموقع يفتح حتى لو النت ضعيف أو مقطوع، بعد أول زيارة.
 // دايم يجيب أحدث نسخة من السيرفر أول، ولو ما قدر يرجع للنسخة المحفوظة. فأي تعديل تنشره يوصل للناس على طول.
-const CACHE = "boxcup-v1";
-const CORE = ["./", "index.html", "config.js", "app.js", "motion.js", "motion.css", "manifest.webmanifest",
+const CACHE = "boxcup-v2";
+const CORE = ["./", "index.html", "config.js", "app.js", "box.js", "motion.js", "motion.css", "manifest.webmanifest",
   "icons/icon-192.png", "icons/icon-512.png", "assets/mujahid.jpg", "assets/raad.jpg"];
 
 self.addEventListener("install", e => {

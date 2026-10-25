@@ -29,7 +29,9 @@
   color-scheme:dark;
 }
 html,body{min-height:100%}
-body{margin:0;background:radial-gradient(1100px 520px at 85% -12%,var(--glow),transparent 70%),var(--bg);color:var(--on-bg);font-family:var(--body);padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+body{margin:0;background:var(--bg);color:var(--on-bg);font-family:var(--body);padding-top:max(14px,env(safe-area-inset-top,0px));padding-bottom:28px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+/* الخلفية في طبقة ثابتة بدل خلفية الصفحة نفسها: بعض المتصفحات ما تعيد رسم خلفية الصفحة لما يتغير الثيم وتظل على اللون القديم */
+body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(1100px 520px at 85% -12%,var(--glow),transparent 70%),var(--bg)}
 .page{max-width:1240px;margin:0 auto;position:relative;z-index:1}
 button{font-family:var(--body)}
 button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible,a:focus-visible{outline:3px solid var(--hi);outline-offset:2px}

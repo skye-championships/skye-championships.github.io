@@ -440,7 +440,7 @@ function viewBracket(){
     s+=`<g class="${match(a)||match(b)?"hlg":""}" data-key="${K(r,m)}"><rect class="bx" x="${x}" y="${y}" width="${W}" height="${H}" rx="5"/>`;
     [a,b].forEach((p,k)=>{const c=!p?"l":w?(w===p?"w":"l"):"";s+=`<text class="tx ${c}" x="${x+W-8}" y="${y+16+k*19}" text-anchor="end">${p?esc(p.length>16?p.slice(0,15)+"…":p):(r===0?"تأهل مباشر":"—")}</text>`;
       if(p&&G.isBo3(r)&&!G.isBye(r,m))s+=`<text class="tx ${c}" x="${x+10}" y="${y+16+k*19}">${ws[k]}</text>`});s+=`</g>`}}
-  if(SECRETS){const fx=10+(R-1)*(W+Gp)+W+12,fy=pos[R-1][0]+H/2-15;s+=`<g class="egg" data-egg="bracket" transform="translate(${fx} ${fy}) scale(.078)"><path fill-rule="evenodd" d="${KID_D}"/></g>`}
+  if(SECRETS){const fx=10+(R-1)*(W+Gp)+W+12,fy=pos[R-1][0]+H/2-15;s+=`<g class="egg" data-egg="bracket" transform="translate(${fx} ${fy}) scale(.078)"><rect x="-120" y="-100" width="567" height="585" fill="transparent"/><path fill-rule="evenodd" d="${KID_D}"/></g>`}
   const width=20+R*(W+Gp),height=20+G.mCount(0)*(H+V);
   const r0=QN?pos[0].findIndex((y,m)=>match(G.slot(0,m,0))||match(G.slot(0,m,1))):-1;
   $("main").innerHTML=`<div class="bar"><button class="btn g" id="zi">+ تكبير</button><button class="btn g" id="zo">− تصغير</button><button class="btn g" id="zr">ملاءمة</button>${QN&&r0<0?`<span class="note">ما لقينا «${esc(Q)}» في البراكت. <button class="linkbtn" type="button" data-clrq>امسح البحث</button></span>`:""}</div>
@@ -656,6 +656,7 @@ addEventListener("keydown",e=>{if(e.key==="Escape")closeWelcome()});
 // ---------- search (shared by matches, bracket and players)
 let qt;$("q").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{Q=e.target.value.trim();QN=norm(Q);
   if(KID_WORDS.has(QN))kidFind("code",$("q"));
+  kidSolve(QN);
   if(QN&&G&&route().page==="matches"){for(let r=G.nRounds-1;r>=0;r--){let f=false;for(let m=0;m<G.mCount(r);m++)if(match(G.slot(r,m,0))||match(G.slot(r,m,1))){f=true;break}if(f){UI.round=r;break}}}render("search")},200)};
 
 // ---------- أسرار كايدو كيد: شعاره مخفي في ٥ أماكن (البطاقة العلوية، تحت الصفحة، جنب النهائي في البراكت،
@@ -668,25 +669,61 @@ const KID_WORDS=new Set(SECRETS?["1412","kaitokid","كايدوكيد","kid1412"]
 const eggHtml=id=>SECRETS?`<span class="egg" data-egg="${id}" aria-hidden="true">${kidSvg()}</span>`:"";
 const kidFound=()=>arr(LS.get("kid:"+TID,[])).filter(x=>EGGS.includes(x));
 function kidOpen(){return SECRETS&&kidFound().length>=EGGS.length}
+// بطاقة كايدو: تطلع فوق الصفحة وتنقفل بالضغط أو Esc. بطاقة اللغز والرسالة ما تنقفل لحالها
+function kidCard(html,from,{cls="",auto=0,done}={}){
+  const w=document.createElement("div");w.className="kwrap";
+  w.innerHTML=`<div class="kcard ${cls}" role="status" aria-live="polite">${html}</div>`;
+  document.body.appendChild(w);
+  const card=w.firstElementChild;if(window.Motion)Motion.cardIn(card,from);
+  let shut=false,tm=0;
+  const close=()=>{if(shut)return;shut=true;clearTimeout(tm);removeEventListener("keydown",onKey,true);w.classList.add("out");
+    const fin=()=>{w.remove();done&&done()};window.Motion?Motion.cardOut(card,fin):fin()};
+  const onKey=e=>{if(e.key==="Escape"||(!cls&&(e.key==="Enter"||e.key===" "))){e.preventDefault();e.stopPropagation();close()}};
+  w.onclick=e=>{if(!cls||!card.contains(e.target)||e.target.closest("[data-kclose]"))close()};addEventListener("keydown",onKey,true);
+  if(auto)tm=setTimeout(close,auto);
+  w._close=close;
+}
 function kidFind(id,from){
   if(!SECRETS||!EGGS.includes(id)||document.querySelector(".kwrap"))return;
   const had=kidFound(),fresh=!had.includes(id),got=fresh?[...had,id]:had,left=EGGS.length-got.length;
+  if(!fresh&&!left){kidRiddle(from);return}   // جمعتها كلها: أي شعار تضغطه يرجع لك اللغز
   if(fresh)LS.set("kid:"+TID,got);
   const unlock=fresh&&!left,secret=skinIds.find(k=>SK[k].secret);
-  const msg=unlock?`<p>لقيت كل الأسرار!</p><small>${secret?`فتحت لك ثيم «${esc(SK[secret].name||secret)}» السري، تلقاه في الثيمات`:"محقق من الطراز الأول"}</small>`
+  const msg=unlock?`<p>لقيت كل الأسرار!</p><small>${secret?`فتحت لك ثيم «${esc(SK[secret].name||secret)}» السري، تلقاه في الثيمات`:"محقق من الطراز الأول"}<br>وكايدو ترك لك لغز…</small>`
     :fresh?`<p>لقيت شعاري 🎩</p><small>باقي ${left}. دوّر زين…</small>`
-    :`<p>هذا لقيته من قبل</p><small>${left?`باقي ${left}`:"لقيتها كلها"}</small>`;
-  const w=document.createElement("div");w.className="kwrap";
-  w.innerHTML=`<div class="kcard" role="status" aria-live="polite">${kidSvg()}<b>KAITO KID</b>${msg}<div class="kdots" aria-label="${got.length} من ${EGGS.length}">${EGGS.map((x,i)=>`<i class="${i<got.length?"on":""}"></i>`).join("")}</div></div>`;
-  document.body.appendChild(w);
-  const card=w.firstElementChild;if(window.Motion)Motion.cardIn(card,from);
-  let shut=false;
-  const close=()=>{if(shut)return;shut=true;clearTimeout(tm);removeEventListener("keydown",onKey,true);w.classList.add("out");
-    const fin=()=>{w.remove();if(unlock&&secret){skinGrid();pickSkin(secret,null)}};
-    window.Motion?Motion.cardOut(card,fin):fin()};
-  const onKey=e=>{if(e.key==="Escape"||e.key==="Enter"||e.key===" "){e.preventDefault();e.stopPropagation();close()}};
-  w.onclick=close;addEventListener("keydown",onKey,true);
-  const tm=setTimeout(close,unlock?7000:4500);
+    :`<p>هذا لقيته من قبل</p><small>باقي ${left}</small>`;
+  kidCard(`${kidSvg()}<b>KAITO KID</b>${msg}<div class="kdots" aria-label="${got.length} من ${EGGS.length}">${EGGS.map((x,i)=>`<i class="${i<got.length?"on":""}"></i>`).join("")}</div>`,from,
+    {auto:unlock?7000:4500,done:unlock?()=>{if(secret){skinGrid();pickSkin(secret,null)}setTimeout(()=>kidRiddle(null),700)}:null});
+}
+
+// ---------- لغز كايدو: يطلع بعد ما تجمع الكروت الخمسة. الجواب يُكتب في البحث، والرسالة اللي وراه مشفرة بالجواب نفسه
+// (ما هي مكتوبة في الموقع، وما تنفتح إلا بالجواب الصح). لتغيير الجواب أو الرسالة: tournament-site-tools/riddle.mjs
+const KID_RIDDLE=[["⚡","الرعد","صوت السما بعد البرق، واسم واحد من اللي بنوا هالموقع"],["🌊","البحر","أكبر من يسكن البحر"],
+  ["🌕","القمر","وش يصير للقمر في الليلة اللي أطلع فيها؟"],["🌙","الليل","اللي يطوّل الليل وما ينام"],
+  ["🪞","الانعكاس","خذ أول حرف من كل جواب، واقرأها مثل ما تشوفها في المرآة"]];
+const KID_NOTE={s:"q45BYXoLUEEoei78K2PPRg==",i:"qaNSCkDwzI/UHh4M",n:200000,c:"gT+C92nFx4zrOrXk2uAB2dd7th4PwzgOFsCRKeLZrXYZ0kYmoHSx3Ou+2o6IC5tSMyHEBFN0M80zhBpMV0wSeyKFnTkT0XQIEPqu8eLEH1WTNd7uW2BM34i1bHitMupzSSzqUXLm1mJ42PnhufuDCxzbr2dyI8LWOUkpgHgabL8uQNex0pbXnne943g2F5AeaZ76BD/s7fvQgsnilrhPJdSkF13xrHFhoVAGPz+LoUmHZrUFZVo21gLvPkpUetE1qxO5i4JpIeDawIWW1KGGDW1yZXr6QsGcPhpr+vPFG1B9Xt16FuHpRp3fVWAcQBJowtIPoMYEsmFskHZKOBD1u9o7wyXm3G6Gq+guUDBg352yLYQNf7DZOcwc4aIpTwLba+ab3QAGAa0Z2yDHKmuk0UoDYCrYgJAeHMLDOjaYYbAEbG4+3xzlNRXePb+N/WqCttM3djXUR8DFzR7QkzHQXumogsqgLjxwG3MxCqJhNSOuPQI+InNf0ojIdvchjeSolraJmKgGrfV3UXFf4DEHFdNqrzcU8RPinpVhO3+fYr7JzzTb8V7vHFwjzCnPmAx6FA=="};
+function kidRiddle(from){
+  if(document.querySelector(".kwrap"))return;
+  const solved=LS.get("kidnote:"+TID,null);
+  kidCard(`${kidSvg()}<b>KAITO KID</b><p>لغز من كايدو</p><ol class="kr">${KID_RIDDLE.map(([i,t,q])=>`<li><span>${i}</span><div><em>${t}</em>${esc(q)}</div></li>`).join("")}</ol>
+    <small>اكتب الجواب في خانة البحث (صفحة اللاعبين) 🔍</small><div class="kbtns">${solved?`<button class="btn" data-knote>افتح رسالتي</button>`:""}<button class="btn g" data-kclose>تمام</button></div>`,from,{cls:"wide"});
+  const b=document.querySelector("[data-knote]");if(b)b.onclick=()=>{b.closest(".kwrap")._close();kidNote(solved)};
+}
+const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
+let kidTry="";
+async function kidSolve(qn){
+  const a=qn.replace(/^ال/,"");if(!SECRETS||!crypto.subtle||a.length<3||a.length>12||a===kidTry)return;kidTry=a;
+  try{const base=await crypto.subtle.importKey("raw",new TextEncoder().encode(a),"PBKDF2",false,["deriveKey"]);
+    const k=await crypto.subtle.deriveKey({name:"PBKDF2",salt:b64(KID_NOTE.s),iterations:KID_NOTE.n,hash:"SHA-256"},base,{name:"AES-GCM",length:256},false,["decrypt"]);
+    const html=new TextDecoder().decode(await crypto.subtle.decrypt({name:"AES-GCM",iv:b64(KID_NOTE.i)},k,b64(KID_NOTE.c)));
+    const prev=LS.get("kidnote:"+TID,null),rec=prev||{html,no:String(1000+Math.floor(Math.random()*9000)),at:Date.now()};
+    if(!prev)LS.set("kidnote:"+TID,rec);
+    document.querySelectorAll(".kwrap").forEach(w=>w._close&&w._close());kidNote(rec);
+  }catch(e){}   // جواب غلط: ولا شي يصير
+}
+function kidNote(rec){
+  const d=new Date(rec.at).toLocaleString("ar-SA-u-nu-latn",{dateStyle:"medium",timeStyle:"short"});
+  kidCard(`${kidSvg()}<div class="knote">${rec.html}</div><div class="kn-id"><span>رقم المحقق <b>#${esc(rec.no)}</b></span><span>${esc(d)}</span></div><div class="kbtns"><button class="btn g" data-kclose>قفل</button></div>`,null,{cls:"wide note"});
 }
 let kb="";
 addEventListener("keydown",e=>{if(!SECRETS||e.ctrlKey||e.metaKey||e.altKey||e.key.length!==1)return;

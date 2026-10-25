@@ -346,7 +346,7 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
 .egg{display:inline-block;line-height:0;color:var(--on-bg);opacity:.16;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .egg svg{width:100%;height:100%;display:block}
 .hero>.egg{position:absolute;z-index:1;top:12px;left:14px;width:22px;height:26px;rotate:-14deg;color:var(--fg);opacity:.12}
-.foot>.egg{width:12px;height:14px;opacity:.3}
+.foot>.egg{width:12px;height:14px;opacity:.3;padding:10px;margin:-10px}
 .pd>.egg{position:absolute;top:12px;left:12px;width:15px;height:18px;rotate:12deg;color:var(--fg);opacity:.13}
 .vp .egg{fill:var(--line);cursor:pointer}
 .kwrap{position:fixed;inset:0;z-index:70;display:grid;place-items:center;padding:16px;background:#05060ac0;cursor:pointer}
@@ -357,6 +357,21 @@ details.fq p{margin:0;padding:0 16px 14px;color:var(--mute);line-height:1.8}
 .kcard p{margin:0;font-weight:900;font-size:17px;line-height:1.5}
 .kcard small{color:#5b5b66;font-weight:700;font-size:12px}
 .kdots{display:flex;gap:6px}.kdots i{width:10px;height:10px;box-sizing:border-box;border-radius:50%;border:1.5px solid currentColor}.kdots i.on{background:currentColor}
+.kcard.wide{width:min(400px,100%);aspect-ratio:auto;max-height:calc(100dvh - 32px);overflow:auto;padding:30px 24px 24px;cursor:auto}
+.kcard.wide>svg{width:58px}
+.kcard.wide>b{font-size:28px}
+.kr{list-style:none;margin:2px 0;padding:0;display:grid;gap:10px;text-align:start;width:100%}
+.kr li{display:flex;gap:10px;align-items:flex-start;font-weight:700;font-size:14px;line-height:1.6}
+.kr li>span{flex:none;width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:#0c0c100d;font-size:16px}
+.kr em{display:block;font-style:normal;font-weight:900;font-size:12px;color:#5b5b66}
+.kbtns{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.kcard .btn{background:#0c0c10;color:#fbfaf6;border:1px solid #0c0c10}.kcard .btn.g{background:transparent;color:#0c0c10}
+.kcard.note{background:#0a1029;color:#f3f6ff}.kcard.note small{color:#9ea9d4}
+.kcard.note .btn.g{color:#f3f6ff;border-color:#f3f6ff}
+.knote h3{margin:0 0 10px;font-size:20px;font-weight:900}.knote p{font-size:15px;font-weight:700}.knote p+p{margin-top:10px}
+.knote .kn-hint{color:#9fbcff;font-size:13px}
+.knote b{font:inherit;font-weight:900;letter-spacing:0;color:#9fbcff}
+.kn-id{display:flex;justify-content:space-between;gap:12px;width:100%;padding-top:12px;border-top:1px dashed #2b3a78;font-size:12px;font-weight:700;color:#9ea9d4}.kn-id b{color:#fff;font-family:var(--display);font-weight:400;font-size:15px;letter-spacing:.06em}
 @media (max-width:820px){.hero{grid-template-columns:1fr;padding:18px 16px}.hclock{order:-1;min-height:0;padding:6px 0 10px}.h-txt{justify-items:stretch}.h-txt>.fnb{justify-self:start}.wm{font-size:120px;bottom:auto;top:-10px}.stats{grid-template-columns:repeat(3,1fr)}.h-cta .btn{flex:1;text-align:center}}
 </style>
 <link rel="stylesheet" href="motion.css">

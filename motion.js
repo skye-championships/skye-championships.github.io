@@ -30,7 +30,7 @@ function theme(update,from){
   // المساحة المغطاة (مو نصف القطر) هي اللي تمشي بانتظام، عشان ما تنقلب أغلب الشاشة دفعة وحدة في النص
   const N=24,frames=[];
   for(let i=0;i<=N;i++){const p=i/N,a=(1-Math.cos(Math.PI*p))/2;frames.push({offset:p,clipPath:`circle(${(R*Math.sqrt(a)).toFixed(1)}px at ${x}px ${y}px)`})}
-  t.ready.then(()=>root.animate(frames,{duration:850,easing:"linear",pseudoElement:"::view-transition-new(root)"})).catch(()=>{});
+  t.ready.then(()=>root.animate(frames,{duration:550,easing:"linear",pseudoElement:"::view-transition-new(root)"})).catch(()=>{});
 }
 
 // ---------- مؤشر القائمة (Active-Tab Indicator): ينزلق بين الأقسام بحركة نابض

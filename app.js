@@ -656,7 +656,7 @@ addEventListener("keydown",e=>{if(e.key==="Escape")closeWelcome()});
 // ---------- search (shared by matches, bracket and players)
 let qt;$("q").oninput=e=>{clearTimeout(qt);qt=setTimeout(()=>{Q=e.target.value.trim();QN=norm(Q);
   if(KID_WORDS.has(QN))kidFind("code",$("q"));
-  kidSolve(QN);
+  kidSolve(QN);kidSkip(QN);
   if(QN&&G&&route().page==="matches"){for(let r=G.nRounds-1;r>=0;r--){let f=false;for(let m=0;m<G.mCount(r);m++)if(match(G.slot(r,m,0))||match(G.slot(r,m,1))){f=true;break}if(f){UI.round=r;break}}}render("search")},200)};
 
 // ---------- أسرار كايدو كيد: شعاره مخفي في ٥ أماكن (البطاقة العلوية، تحت الصفحة، جنب النهائي في البراكت،
@@ -691,13 +691,25 @@ function kidFind(id,from){
   const unlock=fresh&&!left,secret=skinIds.find(k=>SK[k].secret);
   const msg=unlock?`<p>لقيت كل الأسرار!</p><small>${secret?`فتحت لك ثيم «${esc(SK[secret].name||secret)}» السري، تلقاه في الثيمات`:"محقق من الطراز الأول"}<br>وكايدو ترك لك لغز…</small>`
     :fresh?`<p>لقيت شعاري 🎩</p><small>باقي ${left}. دوّر زين…</small>`
-    :`<p>هذا لقيته من قبل</p><small>باقي ${left}</small>`;
+    :`<p>هذا لقيته من قبل</p><small>باقي ${left}. تلميح: ${KID_HINTS[EGGS.find(x=>!got.includes(x))]}</small>`;
   kidCard(`${kidSvg()}<b>KAITO KID</b>${msg}<div class="kdots" aria-label="${got.length} من ${EGGS.length}">${EGGS.map((x,i)=>`<i class="${i<got.length?"on":""}"></i>`).join("")}</div>`,from,
     {auto:unlock?7000:4500,done:unlock?()=>{if(secret){skinGrid();pickSkin(secret,null)}setTimeout(()=>kidRiddle(null),700)}:null});
 }
 
 // ---------- لغز كايدو: يطلع بعد ما تجمع الكروت الخمسة. الجواب يُكتب في البحث، والرسالة اللي وراه مشفرة بالجواب نفسه
 // (ما هي مكتوبة في الموقع، وما تنفتح إلا بالجواب الصح). لتغيير الجواب أو الرسالة: tournament-site-tools/riddle.mjs
+// تلميح للي يضغط نفس الشعار مرة ثانية: يدله على أول سر ما لقاه
+const KID_HINTS={hero:"زاوية البطاقة الكبيرة في الرئيسية",foot:"انزل لآخر الصفحة، جنب الروابط",bracket:"جنب النهائي في صفحة البراكت",prize:"بطاقة المركز الأول في صفحة الجوائز",code:"رقمي 1412، اكتبه بالكيبورد أو في البحث"};
+// كود للمنظمين يفتح كل الكروت مرة وحدة (محفوظ كبصمة SHA-256، مو مكتوب)
+const KID_SKIP="5723a16bbbaacb45bf42ca2456cda3202b7f5b65f1a1e3c3f0ebd2a4db6b0e67";
+async function kidSkip(qn){
+  if(!SECRETS||!crypto.subtle||qn.length<5||qn.length>20)return;
+  const h=[...new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode("kid-skip:"+qn)))].map(b=>b.toString(16).padStart(2,"0")).join("");
+  if(h!==KID_SKIP)return;
+  document.querySelectorAll(".kwrap").forEach(w=>w._close&&w._close());
+  if(kidOpen()){setTimeout(()=>kidRiddle($("q")),600);return}
+  LS.set("kid:"+TID,EGGS.slice(0,-1));setTimeout(()=>kidFind(EGGS[EGGS.length-1],$("q")),600);
+}
 const KID_RIDDLE=[["⚡","الرعد","صوت السما بعد البرق، واسم واحد من اللي بنوا هالموقع"],["🌊","البحر","أكبر من يسكن البحر"],
   ["🌕","القمر","وش يصير للقمر في الليلة اللي أطلع فيها؟"],["🌙","الليل","اللي يطوّل الليل وما ينام"],
   ["🪞","الانعكاس","خذ أول حرف من كل جواب، واقرأها مثل ما تشوفها في المرآة"]];

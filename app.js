@@ -81,7 +81,14 @@ function popup(btn,pop){
   btn.onclick=e=>{const open=pop.hidden;set(open);
     if(open&&e.detail===0){const f=pop.querySelector("[aria-pressed=true]")||pop.querySelector("button,a");f&&f.focus()}};   // من لوحة المفاتيح: التركيز يدخل القائمة
 }
-document.addEventListener("pointerdown",e=>POPS.forEach(p=>{if(!p.pop.hidden&&!p.pop.contains(e.target)&&!p.btn.contains(e.target))p.set(false)}));
+// وقت انتقال الثيم المتصفح يحط صورة فوق الصفحة وكل ضغطة تروح لـ html بدل الزر، فكانت القائمة تنقفل والاختيار يضيع.
+// فنحسب مكان الإصبع بنفسنا: نخلي القائمة مفتوحة، ولو ضغطت على ثيم ثاني يتطبق على طول
+const vtHit=e=>document.documentElement.dataset.vt&&e.target===document.documentElement;
+const at=(el,e)=>{const r=el.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom};
+document.addEventListener("pointerdown",e=>POPS.forEach(p=>{if(p.pop.hidden)return;
+  const inside=vtHit(e)?at(p.pop,e)||at(p.btn,e):p.pop.contains(e.target)||p.btn.contains(e.target);if(!inside)p.set(false)}));
+document.addEventListener("click",e=>{const pop=$("skin-pop");if(!vtHit(e)||!pop||pop.hidden)return;
+  const b=[...pop.querySelectorAll(".sk")].find(b=>at(b,e));if(b)pickSkin(b.dataset.skin,b)});
 addEventListener("keydown",e=>{if(e.key==="Escape")POPS.forEach(p=>{if(!p.pop.hidden){p.set(false);p.btn.focus()}})});
 
 // ---------- مؤسسين الموقع: خانة فوق يسار، وتنفتح بصورهم كبيرة
@@ -331,7 +338,7 @@ function heroClock(){
   if(mode==="champ")$("hc-name").textContent=ch;
   else{el.querySelectorAll(".ts").forEach((b,i)=>flapSet(b,groups[i][0]));const sr=groups.map(g=>`${+g[0]} ${g[1]}`).join("، ");if($("hc-sr").textContent!==sr)$("hc-sr").textContent=sr}
   clearInterval(hcTimer);hcTimer=null;
-  if(mode==="cd")hcTimer=setInterval(()=>{if(!$("hero").hidden&&!document.hidden)heroClock()},1000);
+  if(mode==="cd")hcTimer=setInterval(()=>{if(!$("hero").hidden&&!document.hidden&&!document.documentElement.dataset.vt)heroClock()},1000);   // ما نقلب الأرقام وسط انتقال الثيم، تلحق بالثانية اللي بعدها
 }
 function banner(){
   const b=$("banner");
